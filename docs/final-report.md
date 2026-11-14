@@ -20,7 +20,7 @@ Launch, from `brd-decision-aid`:
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-streamlit run app.py
+streamlit run streamlit_app.py
 ```
 
 No paid key. The demo CSVs are already in `data/`, next to `data/generate_demo_data.py` and `data/data_dictionary.md`.

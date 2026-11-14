@@ -10,8 +10,10 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 pytest
-streamlit run app.py
+streamlit run streamlit_app.py
 ```
+
+`app.py` is the ASGI entry (`uvicorn app:app`). It serves the same shortage path: the Lot 4401 staff cut, Lot 4388 with no confident call, and the text decision summary.
 
 Python 3.11 or newer. PuLP is pinned to 2.9 because that release bundles the CBC solver. The demo CSVs are already in `data/`. To rewrite them:
 
