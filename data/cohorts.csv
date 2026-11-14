@@ -1,0 +1,9 @@
+cohort_id,yard_id,cohort_name,head_count,sex,arrival_weight_lb,source_count,travel_distance_mi,weaning_status,vaccination_status,ration_transition_status,bunk_space_in_per_head,arrival_quarter,clinically_ill_head
+TXA-4401,TX-A,Lot 4401,200,steer,540,4,520,known_unweaned,known_unvaccinated,transitioning,8,Q4,4
+TXA-4402,TX-A,Lot 4402,160,steer,760,1,120,known_weaned,known_vaccinated,adapted,12,Q2,1
+TXB-4388,TX-B,Lot 4388,120,mixed,550,3,,unknown,unknown,unknown,10,Q4,2
+TXB-4390,TX-B,Lot 4390,140,heifer,570,1,450,known_unweaned,known_unvaccinated,transitioning,9,Q4,2
+KSA-4502,KS-A,Lot 4502,150,steer,700,2,300,known_weaned,known_vaccinated,adapted,11,Q1,1
+KSA-4508,KS-A,Lot 4508,100,steer,800,1,90,known_weaned,known_vaccinated,adapted,13,Q2,0
+KSB-4601,KS-B,Lot 4601,220,mixed,690,2,250,known_weaned,known_vaccinated,transitioning,10,Q3,3
+KSB-4604,KS-B,Lot 4604,90,heifer,610,1,180,known_weaned,known_vaccinated,unknown,12,Q4,1

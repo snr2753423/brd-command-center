@@ -1,0 +1,5 @@
+yard_id,yard_name,region,weather_stress_flag,pen_capacity_sqft,staff_hours,demo_staff_hours,treatment_slots,bottleneck
+TX-A,Panhandle North,Texas Panhandle,false,90000.0000,220.0000,90.0000,68.4478,staff and treatment
+TX-B,Panhandle South,Texas Panhandle,false,65000.0000,65.0000,65.0000,52.0021,staff
+KS-A,High Plains West,western Kansas,true,62500.0000,62.5000,62.5000,27.7123,staff
+KS-B,High Plains East,western Kansas,false,77500.0000,77.5000,77.5000,43.2743,pen

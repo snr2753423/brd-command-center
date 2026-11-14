@@ -1,0 +1,12 @@
+cohort_id,yard_id,cohort_name,head_count,sex,arrival_weight_lb,source_count,travel_distance_mi,weaning_status,vaccination_status,ration_transition_status,bunk_space_in_per_head,arrival_quarter,clinically_ill_head
+UPLOAD-1,TX-A,Upload good,100,steer,700,1,100,known_weaned,known_vaccinated,adapted,12,Q2,0
+BAD-HEAD,TX-A,Bad head,-5,steer,700,1,100,known_weaned,known_vaccinated,adapted,12,Q2,0
+BAD-SEX,TX-A,Bad sex,100,bull,700,1,100,known_weaned,known_vaccinated,adapted,12,Q2,0
+BAD-WT,TX-A,Bad weight,100,steer,,1,100,known_weaned,known_vaccinated,adapted,12,Q2,0
+BAD-YARD,ZZ-9,Bad yard,100,steer,700,1,100,known_weaned,known_vaccinated,adapted,12,Q2,0
+BAD-Q,TX-A,Bad quarter,100,steer,700,1,100,known_weaned,known_vaccinated,adapted,12,Q5,0
+BAD-MI,TX-A,Bad miles,100,steer,700,1,-20,known_weaned,known_vaccinated,adapted,12,Q2,0
+BAD-ILL,TX-A,Bad ill,10,steer,700,1,100,known_weaned,known_vaccinated,adapted,12,Q2,50
+BAD-BUNK,TX-A,Bad bunk,100,steer,700,1,100,known_weaned,known_vaccinated,adapted,-2,Q2,0
+UPLOAD-DUP,TX-A,Dup A,100,steer,700,1,100,known_weaned,known_vaccinated,adapted,12,Q2,0
+UPLOAD-DUP,TX-A,Dup B,100,steer,700,1,100,known_weaned,known_vaccinated,adapted,12,Q2,0

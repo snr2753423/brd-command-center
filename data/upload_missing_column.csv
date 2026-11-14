@@ -1,0 +1,2 @@
+cohort_id,yard_id,cohort_name,sex,arrival_weight_lb,source_count,travel_distance_mi,weaning_status,vaccination_status,ration_transition_status,bunk_space_in_per_head,arrival_quarter,clinically_ill_head
+NO-HEAD,TX-A,Missing head column,steer,700,1,,,,,,Q2,0
