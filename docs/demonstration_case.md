@@ -1,6 +1,6 @@
 # Demonstration case
 
-One case: Lot 4401 at Panhandle North (TX-A), on the synthetic shortage file. The extras expander stays closed. Figures below are from that file at the literature constants.
+One case: Lot 4401 at Panhandle North (TX-A), on the synthetic shortage file. The extras expander stays closed. Figures below are from that file at the published Rojas 2022 constants.
 
 ## Inputs
 
@@ -14,7 +14,7 @@ TX-A arrival-week capacity, synthetic: 220 staff hours, pen equal to 250 sq ft p
 
 Current practice: veterinary review when arrival weight is under 600 lb and source count is at least 2. Every other cohort stays on standard care. The weight and source cutoffs are the operating rule (assumption). They are not the 15% model benchmark.
 
-Lot 4401 is under 600 lb and has four sources, so the baseline action is veterinary review. That action requires a veterinarian. It is not a prescription. For this lot the baseline projects about 29.4 expected cases, about $9,073 operating loss, about 225 synthetic exposure units, and 110 staff hours. The high exposure is metaphylaxis on the at-risk head plus treatment of the remaining cases. The $23.60 drug cost is not inside the $151.18 case cost. Both are assumptions.
+Lot 4401 is under 600 lb and has four sources, so the baseline action is veterinary review. That action requires a veterinarian. It is not a prescription. For this lot the baseline projects about 29.4 expected cases, about $9,073 operating loss, about 225 synthetic exposure units, and 110 staff hours. The high exposure is metaphylaxis on the at-risk head plus treatment of the remaining cases. The $23.60 drug cost is not inside the $151.18 case cost. Both come from Rojas et al. 2022, Table 3.
 
 Applied to every cohort, the same rule does not fit the shortage file. TX-B would need 101 staff hours and has 65, because Lot 4388 is also light and multi-source. The baseline is therefore the comparison point, not a feasible yard plan.
 

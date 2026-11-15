@@ -206,8 +206,8 @@ def render_page() -> str:
   <div class="banner">
     <strong>Synthetic data.</strong>
     Yard volumes, cohort rows, and weather-stress flags are synthetic.
-    The 15% line is a published Rojas benchmark.
-    Costs, efficacy, and risk coefficients are assumptions, not validated accuracy.
+    The 15% line and the $151.18, $23.60, and 50% metaphylaxis constants are published (Rojas et al. 2022).
+    Other effect sizes and the risk coefficients are assumptions, not validated accuracy.
     Medication actions are not prescriptions.
   </div>
   <p class="nav">

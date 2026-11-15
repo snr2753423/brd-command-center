@@ -1,13 +1,13 @@
 # Evidence registry
 
-Every number on the storyboard is one of three tags. Nothing here is a validated accuracy claim, and this app does not report an AUC.
+Every number on the storyboard is one of three tags. Full citations are in `docs/technical_brief.md` under References. Nothing here is a validated accuracy claim, and this app does not report an AUC.
 
 | Item | Value | Tag | How it is used |
 |---|---|---|---|
-| High-risk benchmark | 15% first-treatment morbidity | Published | Rojas 2022 threshold, as named in the decision record. A cohort at or above this line is model-high-risk. This is not P(high-risk), and it is not the current-practice rule. Cattle-level Rojas records are not in this app. |
-| Metaphylaxis cost | $23.60 per at-risk head | Assumption | Literature constant. Charged only on veterinary review, only for head that are not already clinically ill. Not added into the case-loss constant. |
-| Morbidity cost | $151.18 per expected case | Assumption | Literature constant. Treated as case loss. The default objective uses it. The extras control can move it to $400, which is not a published cost. |
-| Metaphylaxis efficacy | 50% | Assumption | Literature constant. Applied only to cattle that are not already clinically ill, and only if the plan selects veterinary review. Not a claim that a protocol was validated here. |
+| High-risk benchmark | 15% first-treatment morbidity | Published | Rojas et al. 2022, *Pathogens* 11:442: cohorts at or above 15% BRD morbidity in the first 45 days on feed are high risk. A cohort at or above this line is model-high-risk. This is not P(high-risk), and it is not the current-practice rule. Cattle-level Rojas records are not in this app. |
+| Metaphylaxis cost | $23.60 per at-risk head | Published | Rojas et al. 2022, Table 3, "cost of single metaphylactic treatment per animal" (from USDA NAHMS Feedlot 2011). Charged only on veterinary review, only for head that are not already clinically ill. Not added into the case-loss constant. |
+| Morbidity cost | $151.18 per expected case | Published | Rojas et al. 2022, Table 3, "cost of morbid animal": lost value of a sick animal versus a healthy one. Treated as case loss. The default objective uses it. The extras control can move it to $400, which is not a published cost. |
+| Metaphylaxis efficacy | 50% | Published | Rojas et al. 2022, Table 3, citing Avra et al. 2017. A modeling input in that paper, not a trial estimate. Applied only to cattle that are not already clinically ill, and only if the plan selects veterinary review. Not a claim that a protocol was validated here. |
 | Surveillance efficacy | 18% | Assumption | Not the 50% metaphylaxis constant. |
 | Surveillance program cost | $1.50 per head | Assumption | Supplies. Staff time is a capacity constraint, not a second labor bill. |
 | Supportive efficacy | 30% | Assumption | Blocked on the shortage yards by the pen limit. |

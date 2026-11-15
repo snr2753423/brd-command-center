@@ -54,4 +54,4 @@ Shortage capacities are derived by `src/capacities.py` from the same action metr
 
 ## Evidence tags
 
-Published: the 15% high-risk benchmark. Assumption: coefficients, efficacy, and the dollar constants. Synthetic: these rows, capacities, and weather-stress flags.
+Published (Rojas et al. 2022): the 15% high-risk benchmark, the $151.18 morbid-animal cost, the $23.60 metaphylaxis cost, and 50% metaphylaxis efficacy. Assumption: risk coefficients, the other efficacies, and program costs. Synthetic: these rows, capacities, and weather-stress flags.

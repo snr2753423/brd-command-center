@@ -5,9 +5,10 @@ A local decision aid for a feedlot manager. It turns synthetic arrival cohorts i
 ## Launch
 
 ```bash
-cd brd-decision-aid
+git clone https://github.com/snr2753423/brd-command-center
+cd brd-command-center
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 pytest
 streamlit run streamlit_app.py
@@ -28,7 +29,7 @@ The app opens on the shortage scenario. Use **Apply demo staff cut** on the Opti
 - `docs/design.md` — visual rules for the storyboard screens
 - `docs/decision-record.md`, `docs/scope.md`, `docs/expansion.md` — product lock
 - `data/data_dictionary.md` — columns, next to the generator
-- `docs/evidence_registry.md` — published, synthetic, and assumption tags
+- `docs/evidence_registry.md` — published, synthetic, and assumption tags, with sources
 - `docs/technical_brief.md` — method and limits
 - `docs/demonstration_case.md` — the three-minute path
 - `docs/ai_disclosure.md`

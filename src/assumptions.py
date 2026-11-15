@@ -1,8 +1,10 @@
 """Adjustable planning assumptions.
 
-Literature constants (15% benchmark, $23.60, $151.18, 50% efficacy) are labeled
-assumptions in the product. They are not a claim of validated accuracy, and
-this package does not report an AUC.
+Published constants come from Rojas et al. 2022 (Pathogens 11:442): the 15%
+high-risk cutoff, and Table 3's $23.60 metaphylaxis cost per animal, $151.18
+cost of a morbid animal, and 50% metaphylaxis efficacy. They are cited inputs,
+not accuracy this package measured, and this package does not report an AUC.
+Everything else here is an adjustable assumption.
 """
 
 from __future__ import annotations
@@ -12,10 +14,12 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Assumptions:
-    # Published threshold used as the high-risk benchmark. Not our measured rate.
+    # Published: Rojas et al. 2022, 15% BRD morbidity in the first 45 days on feed.
     high_risk_benchmark: float = 0.15
 
-    # Literature constants. Dollars are not mixed: case loss is not the drug invoice.
+    # Published: Rojas et al. 2022, Table 3 (cost of morbid animal; cost of a single
+    # metaphylactic treatment per animal, from USDA NAHMS 2011; efficacy set at 0.5).
+    # Dollars are not mixed: case loss is not the drug invoice.
     morbidity_cost_per_case: float = 151.18
     metaphylaxis_cost_per_head: float = 23.60
     metaphylaxis_efficacy: float = 0.50

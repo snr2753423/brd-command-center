@@ -81,8 +81,8 @@ def _banner() -> None:
         <div class="banner">
         <strong>Synthetic data.</strong>
         Yard volumes, cohort rows, and weather-stress flags are synthetic.
-        The 15% line is a published Rojas benchmark.
-        Costs, efficacy, and risk coefficients are assumptions, not validated accuracy.
+        The 15% line and the $151.18, $23.60, and 50% metaphylaxis constants are published (Rojas et al. 2022).
+        Other effect sizes and the risk coefficients are assumptions, not validated accuracy.
         Medication actions are not prescriptions.
         </div>
         """,
@@ -387,8 +387,8 @@ def page_compare(context: Context) -> None:
     st.dataframe(pd.DataFrame(table), hide_index=True, width="stretch")
     _tag(
         "Cases: assumption efficacy × synthetic head count. "
-        "Loss: $151.18 per case plus the action's own program cost (assumption). "
-        "Metaphylaxis is $23.60 per at-risk head and is not inside the case cost. "
+        "Loss: $151.18 per case (published, Rojas 2022 Table 3) plus the action's own program cost. "
+        "Metaphylaxis is $23.60 per at-risk head (published, same table) and is not inside the case cost. "
         "Exposure units are synthetic. Staff, pen, and treatment rates are assumptions."
     )
     st.plotly_chart(
@@ -542,7 +542,7 @@ def page_optimizer(context: Context, result, practice, scenario: str, seeded) ->
             key="morbidity_cost",
             format="%.2f",
         )
-        _tag("Literature constant $151.18. The $400 stress value is an assumption, not a published cost.")
+        _tag("Published $151.18 (Rojas 2022 Table 3). The $400 stress value is an assumption, not a published cost.")
         one, two = st.columns(2)
         with one:
             st.button(
@@ -559,7 +559,7 @@ def page_optimizer(context: Context, result, practice, scenario: str, seeded) ->
                 args=(Assumptions().flip_morbidity_cost_per_case,),
             )
         st.caption(
-            "At the literature constant, Lot 4401 stays on enhanced surveillance when TX-A has its seeded hours. "
+            "At the published constant, Lot 4401 stays on enhanced surveillance when TX-A has its seeded hours. "
             "At $400 per case, the same solve can select veterinary review. That action still requires a veterinarian."
         )
 

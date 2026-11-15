@@ -12,9 +12,9 @@ After that path, a morbidity-cost control ($151.18 versus a $400 stress value) c
 
 ## Checks
 
-`pytest`: 28 passed. That includes risk math, separate morbidity and metaphylaxis dollars, constraint feasibility, the staff cut, the cost flip, and the storyboard in the app.
+`pytest`: 29 passed. That includes risk math, separate morbidity and metaphylaxis dollars, constraint feasibility, the staff cut, the cost flip, and the storyboard in the app.
 
-Launch, from `brd-decision-aid`:
+Launch, from the repository root:
 
 ```bash
 python3 -m venv .venv
@@ -27,15 +27,8 @@ No paid key. The demo CSVs are already in `data/`, next to `data/generate_demo_d
 
 ## Repository
 
-Not pushed. Creating `snr2753423/brd-command-center` failed with exit code 4:
-
-```
-To get started with GitHub CLI, please run:  gh auth login
-Alternatively, populate the GH_TOKEN environment variable with a GitHub API authentication token.
-```
-
-`gh auth status` had already reported: `You are not logged into any GitHub hosts. To log in, run: gh auth login`. The commit is local on `main`.
+https://github.com/snr2753423/brd-command-center, branch `main`.
 
 ## Limits
 
-The 15% benchmark is the published Rojas threshold. The dollar constants, the 50% efficacy, and the other effect sizes are assumptions, not validated accuracy. Medication actions require veterinary review. The weather-stress flag is synthetic. There is no live weather API.
+The 15% benchmark, the $151.18 and $23.60 constants, and the 50% metaphylaxis efficacy are published (Rojas et al. 2022). The other effect sizes are assumptions, not validated accuracy. Medication actions require veterinary review. The weather-stress flag is synthetic. There is no live weather API.

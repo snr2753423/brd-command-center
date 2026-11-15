@@ -20,7 +20,7 @@ def decision_summary(
     assumptions: Assumptions = context.assumptions
     lines: list[str] = [
         "BRD Command Center — decision summary",
-        "SYNTHETIC DATA. Not a prescription. Literature constants are assumptions, not validated accuracy.",
+        "SYNTHETIC DATA. Not a prescription. Published constants are cited inputs, not validated accuracy.",
         "",
         f"Scenario: {scenario}",
         f"Objective: {OBJECTIVE_LABEL.get(recommended.objective, recommended.objective)}",
@@ -29,10 +29,10 @@ def decision_summary(
         rule_text(assumptions),
         "",
         "Assumptions",
-        f"- High-risk benchmark {pct(assumptions.high_risk_benchmark)} (published Rojas threshold)",
-        f"- Morbidity cost {money(assumptions.morbidity_cost_per_case)} per expected case (assumption)",
-        f"- Metaphylaxis {money(assumptions.metaphylaxis_cost_per_head)} per at-risk head (assumption)",
-        f"- Metaphylaxis efficacy {pct(assumptions.metaphylaxis_efficacy)} (assumption)",
+        f"- High-risk benchmark {pct(assumptions.high_risk_benchmark)} (published, Rojas et al. 2022)",
+        f"- Morbidity cost {money(assumptions.morbidity_cost_per_case)} per expected case (published, Rojas 2022 Table 3)",
+        f"- Metaphylaxis {money(assumptions.metaphylaxis_cost_per_head)} per at-risk head (published, Rojas 2022 Table 3)",
+        f"- Metaphylaxis efficacy {pct(assumptions.metaphylaxis_efficacy)} (published, Rojas 2022 Table 3)",
         f"- Enhanced surveillance efficacy {pct(assumptions.surveillance_efficacy)} (assumption)",
         f"- Supportive management efficacy {pct(assumptions.supportive_efficacy)} (assumption)",
         "- Medication actions require veterinary review. This file does not prescribe.",
