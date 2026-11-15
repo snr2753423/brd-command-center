@@ -1,39 +1,73 @@
 # BRD Command Center
 
-A local decision aid for a feedlot manager. It turns synthetic arrival cohorts into an explainable 45-day morbidity estimate, a comparison with today's rule, and a resource-feasible plan. No account, no database, no paid API.
+A decision aid for feedlot managers handling bovine respiratory disease (BRD) in the first 45 days after arrival. It scores each arrival cohort's BRD risk and shows how uncertain that score is. It compares treatment options against the yard's current practice on cases, deaths, cost, and antimicrobial use. It then builds a plan that fits each yard's staff, pen, and treatment limits. Medication decisions stay with a veterinarian.
 
-## Launch
+- **Competition:** AISFS × Merck Animal Health Interdisciplinary Hackathon 2026, hosted by the AISFS Club (Artificial Intelligence for Sustainable Livestock Systems), Texas A&M University
+- **Track:** Problem 1, BRD Decision Aid
+- **Team:** Srivanth Rudrangi, Vignesh Nagarajan, Krish Hariharan
+- **Tech stack:** Python 3.11+, Streamlit, pandas, NumPy, PuLP (CBC solver), Plotly, pytest
+- **Data:** synthetic cohorts and yards, calibrated to Rojas et al. 2022 (1,733 feedlot cohorts). No paid APIs, accounts, or database.
+- **Submission:** this repository, with the [technical brief](docs/technical_brief.pdf), the [demonstration case](docs/demonstration_case.md), and the [AI disclosure](docs/ai_disclosure.md)
+
+## Run it
+
+Requires Python 3.11 or newer.
 
 ```bash
 git clone https://github.com/snr2753423/brd-command-center
 cd brd-command-center
-python3 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+python -m venv .venv
+```
+
+Activate the environment (macOS/Linux, then Windows):
+
+```bash
+source .venv/bin/activate
+```
+
+```bash
+.venv\Scripts\activate
+```
+
+Install, test, and launch:
+
+```bash
 pip install -r requirements.txt
 pytest
 streamlit run streamlit_app.py
 ```
 
-`app.py` is the ASGI entry (`uvicorn app:app`). It serves the same shortage path: the Lot 4401 staff cut, Lot 4388 with no confident call, and the text decision summary.
-
-Python 3.11 or newer. PuLP is pinned to 2.9 because that release bundles the CBC solver. The demo CSVs are already in `data/`. To rewrite them, or to refit the risk score to the Rojas et al. 2022 summary statistics (about 30 seconds):
+Optional: rebuild the demo data, refit the calibration (about 30 s), or rebuild the brief PDF:
 
 ```bash
 python data/generate_demo_data.py
 python data/calibrate_to_rojas.py
+pip install markdown && python docs/build_brief.py
 ```
 
-The app opens on the shortage scenario. Use **Apply demo staff cut** on the Optimizer screen. Lot 4401 should move off enhanced surveillance, and the case, cost, and antimicrobial totals should change. Lot 4388 should refuse a confident call. **Calibration against Rojas et al. 2022** on the Overview screen shows the synthetic population against the published figures. The CSV check rejects `data/upload_bad_rows.csv` and `data/upload_missing_column.csv`.
+**Demo path:** the app opens on the shortage scenario. On **Optimizer**, click **Apply demo staff cut**. Lot 4401 moves from enhanced surveillance to standard care, and the totals update. On **Cohort**, open Lot 4388: it is missing history, so the app refuses a confident call. **Export** downloads the decision summary.
 
-Every yard's staff, pen, and treatment limit has its own slider on the Optimizer screen. Accepted upload rows can be added to the plan or replace the seeded cohorts. The optimizer then re-solves with them. If a limit is too tight, the error names the yard and the limit that is short.
+## Repo roadmap
 
-## Docs
-
-- `docs/design.md` — visual rules for the storyboard screens
-- `docs/decision-record.md`, `docs/scope.md`, `docs/expansion.md` — product lock
-- `data/data_dictionary.md` — columns, next to the generator
-- `docs/evidence_registry.md` — published, synthetic, and assumption tags, with sources
-- `docs/technical_brief.pdf` — the submitted brief: three pages plus references. Source: `docs/technical_brief.md`. Rebuild it with `pip install markdown` then `python docs/build_brief.py`, which fails if the body runs past three pages.
-- `docs/demonstration_case.md` — the three-minute path
-- `docs/ai_disclosure.md`
-- `docs/final-report.md`
+```text
+streamlit_app.py        Dashboard: Overview, Cohort, Compare, Optimizer, Export
+app.py                  ASGI entry (uvicorn app:app) serving the demo path
+src/
+  risk_model.py         45-day morbidity score, drivers, unknown-field planning
+  calibration.py        Fit to Rojas 2022 mean, high-risk share, and AUC
+  economics.py          Cases, deaths, operating loss, antimicrobial exposure per action
+  optimizer.py          PuLP plan under staff, pen, treatment limits and welfare floors
+  practice.py           Named current-practice rule (the baseline)
+  validation.py         CSV upload checks
+  assumptions.py        Every constant, tagged published, derived, or assumption
+data/
+  generate_demo_data.py Writes the demo cohorts and yard capacities
+  calibrate_to_rojas.py Refits the score and writes calibration_*.csv
+  data_dictionary.md    Columns, units, and how unknowns are handled
+docs/
+  technical_brief.pdf   Three-page brief plus references
+  demonstration_case.md One end-to-end decision for Lot 4401
+  evidence_registry.md  Source for every number
+  ai_disclosure.md      AI tools and external resources
+tests/                  pytest suite (risk, costs, optimizer, calibration, app)
+```
