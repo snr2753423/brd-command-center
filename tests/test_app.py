@@ -75,3 +75,28 @@ def test_cost_stress_flips_the_action_and_low_staff_is_refused():
 
     app.slider[0].set_value(45).run()
     assert any("No feasible plan" in item.value for item in app.error)
+
+
+def test_uploaded_rows_enter_the_plan_and_pen_slider_resolves_it():
+    app = _app()
+    payload = (ROOT / "data" / "upload_bad_rows.csv").read_bytes()
+    app.file_uploader[0].upload("upload_bad_rows.csv", payload, "text/csv").run()
+    next(button for button in app.button if button.key == "upload_add").click().run()
+    assert not app.exception
+    assert any("uploaded cohort(s)" in item.value for item in app.info)
+
+    app.sidebar.radio[0].set_value("Optimizer").run()
+    # The seeded TX-A pens are full, so 100 more head cannot fit until pen space is added.
+    assert any("TX-A pen needs at least" in item.value for item in app.error)
+    pen = next(slider for slider in app.slider if slider.key == "w_cap_shortage_TX-A_pen_capacity_sqft")
+    pen.set_value(150000.0).run()
+    assert not app.exception
+    assert not app.error
+    tables = "\n".join(frame.value.astype(str).to_string() for frame in app.dataframe)
+    assert "UPLOAD-1" in tables
+
+    app.sidebar.radio[0].set_value("Overview").run()
+    next(button for button in app.button if button.key == "clear_upload").click().run()
+    app.sidebar.radio[0].set_value("Optimizer").run()
+    tables = "\n".join(frame.value.astype(str).to_string() for frame in app.dataframe)
+    assert "UPLOAD-1" not in tables

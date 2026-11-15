@@ -24,6 +24,8 @@ python data/generate_demo_data.py
 
 The app opens on the shortage scenario. Use **Apply demo staff cut** on the Optimizer screen. Lot 4401 should move off enhanced surveillance, and the case, cost, and antimicrobial totals should change. Lot 4388 should refuse a confident call. The CSV check rejects `data/upload_bad_rows.csv` and `data/upload_missing_column.csv`.
 
+Every yard's staff, pen, and treatment limit has its own slider on the Optimizer screen. Accepted upload rows can be added to the plan or replace the seeded cohorts. The optimizer then re-solves with them. If a limit is too tight, the error names the yard and the limit that is short.
+
 ## Docs
 
 - `docs/design.md` — visual rules for the storyboard screens

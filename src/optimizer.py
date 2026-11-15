@@ -73,16 +73,59 @@ def _totals(metrics: list[Metric]) -> Totals:
     )
 
 
-def _capacities(yards: dict[str, Yard], staff_hours: dict[str, float] | None) -> dict[str, Yard]:
-    if not staff_hours:
+CAPACITY_FIELDS: tuple[str, ...] = ("staff_hours", "pen_capacity_sqft", "treatment_slots")
+
+CapacityOverrides = dict[str, dict[str, float]]
+
+
+def _capacities(
+    yards: dict[str, Yard],
+    staff_hours: dict[str, float] | None,
+    capacities: CapacityOverrides | None = None,
+) -> dict[str, Yard]:
+    """Apply manager overrides. `capacities` maps yard -> {field: value} for any hard limit."""
+    if not staff_hours and not capacities:
         return yards
     updated: dict[str, Yard] = {}
     for yard_id, yard in yards.items():
-        if yard_id in staff_hours:
-            updated[yard_id] = replace(yard, staff_hours=float(staff_hours[yard_id]))
-        else:
-            updated[yard_id] = yard
+        changes: dict[str, float] = {}
+        if staff_hours and yard_id in staff_hours:
+            changes["staff_hours"] = float(staff_hours[yard_id])
+        for field, value in (capacities or {}).get(yard_id, {}).items():
+            if field not in CAPACITY_FIELDS:
+                raise KeyError(field)
+            changes[field] = float(value)
+        updated[yard_id] = replace(yard, **changes) if changes else yard
     return updated
+
+
+def diagnose_shortfall(
+    cohorts: list[Cohort],
+    metrics: dict[str, dict[str, Metric]],
+    yards: dict[str, Yard],
+    staff_hours: dict[str, float] | None = None,
+    capacities: CapacityOverrides | None = None,
+) -> tuple[str, ...]:
+    """Name each yard limit that is below the least any plan could use there."""
+    caps = _capacities(yards, staff_hours, capacities)
+    short: list[str] = []
+    for yard_id, yard in caps.items():
+        members = [cohort for cohort in cohorts if cohort.yard_id == yard_id]
+        if not members:
+            continue
+        need_staff = sum(metrics[c.cohort_id]["standard_care"].welfare_staff_floor for c in members)
+        need_pen = sum(min(m.pen_sqft for m in metrics[c.cohort_id].values()) for c in members)
+        need_treat = sum(min(m.treatment_slots for m in metrics[c.cohort_id].values()) for c in members)
+        if need_staff > yard.staff_hours + 1e-4:
+            short.append(f"{yard_id} staff needs at least {need_staff:.1f} h for standard care; it has {yard.staff_hours:.1f}.")
+        if need_pen > yard.pen_capacity_sqft + 1e-2:
+            short.append(f"{yard_id} pen needs at least {need_pen:,.0f} sq ft; it has {yard.pen_capacity_sqft:,.0f}.")
+        if need_treat > yard.treatment_slots + 1e-4:
+            short.append(
+                f"{yard_id} treatment needs at least {need_treat:.1f} slots even on the lowest-case action; "
+                f"it has {yard.treatment_slots:.1f}."
+            )
+    return tuple(short)
 
 
 def _objective_coef(metric: Metric, objective: str) -> float:
@@ -102,8 +145,9 @@ def evaluate_assignment(
     yards: dict[str, Yard],
     staff_hours: dict[str, float] | None = None,
     objective: str = "operating_loss",
+    capacities: CapacityOverrides | None = None,
 ) -> Evaluation:
-    caps = _capacities(yards, staff_hours)
+    caps = _capacities(yards, staff_hours, capacities)
     chosen: dict[str, Metric] = {}
     violations: list[str] = []
     for cohort in cohorts:
@@ -172,11 +216,12 @@ def solve(
     objective: str = "operating_loss",
     staff_hours: dict[str, float] | None = None,
     assumptions: Assumptions | None = None,
+    capacities: CapacityOverrides | None = None,
 ) -> Evaluation:
     if objective not in OBJECTIVES:
         raise KeyError(objective)
     del assumptions  # capacities already sit on the yards; assumptions built the metrics
-    caps = _capacities(yards, staff_hours)
+    caps = _capacities(yards, staff_hours, capacities)
     if not cohorts:
         return Evaluation(
             status="infeasible",
@@ -260,11 +305,13 @@ def solve(
 
     status = problem.solve(pulp.PULP_CBC_CMD(msg=False))
     if pulp.LpStatus[status] != "Optimal":
+        short = diagnose_shortfall(cohorts, metrics, yards, staff_hours, capacities)
+        detail = " ".join(short) if short else "Each limit can be met alone, but not all of them together."
         return _infeasible(
             objective,
             "No feasible plan. Staff hours, pen space, or treatment throughput cannot cover "
             "the welfare floor: standard-care monitoring, and treatment of cattle that are "
-            "already clinically ill. The model will not drop that care.",
+            "already clinically ill. The model will not drop that care. " + detail,
         )
 
     assignment: dict[str, str] = {}
@@ -280,7 +327,7 @@ def solve(
         assignment[cohort.cohort_id] = picked[0]
 
     evaluation = evaluate_assignment(
-        assignment, cohorts, metrics, yards, staff_hours=staff_hours, objective=objective
+        assignment, cohorts, metrics, yards, staff_hours=staff_hours, objective=objective, capacities=capacities
     )
     if evaluation.violations:
         return _infeasible(objective, evaluation.message)

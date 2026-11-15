@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import replace
 
 import pandas as pd
@@ -12,7 +13,7 @@ from src.charts import burden_chart, compare_chart, index_chart, totals_caption
 from src.data_loader import load_demo
 from src.economics import compare_to_practice
 from src.format import money, num, pct
-from src.optimizer import evaluate_assignment, solve
+from src.optimizer import CAPACITY_FIELDS, evaluate_assignment, solve
 from src.pipeline import Context, build_context
 from src.practice import action_label, rule_text
 from src.reporting import decision_summary
@@ -20,10 +21,11 @@ from src.risk_model import domain_summary, why_line
 from src.schema import (
     ACTION_LABEL,
     DEMO_YARD_ID,
-    INCOMPLETE_COHORT_ID,
     OBJECTIVE_LABEL,
     OBJECTIVES,
     PRIORITY_COHORT_ID,
+    Cohort,
+    Yard,
 )
 from src.validation import validate_cohort_frame
 
@@ -37,8 +39,62 @@ def _go(page: str, cohort_id: str | None = None) -> None:
         st.session_state.cohort_id = cohort_id
 
 
-def _set_staff(value: float) -> None:
-    st.session_state.staff_txa = float(value)
+# Label and slider step for each hard limit a manager can move.
+CAP_SPEC: dict[str, tuple[str, float]] = {
+    "staff_hours": ("Staff h", 0.25),
+    "pen_capacity_sqft": ("Pen sq ft", 250.0),
+    "treatment_slots": ("Treatment slots", 0.1),
+}
+
+
+def _cap_key(scenario: str, yard_id: str, field: str) -> str:
+    return f"cap_{scenario}_{yard_id}_{field}"
+
+
+def _seed_value(yard: Yard, field: str) -> float:
+    """File value rounded up to the slider step, so the seeded limit is never tightened."""
+    step = CAP_SPEC[field][1]
+    return round(math.ceil(float(getattr(yard, field)) / step - 1e-9) * step, 4)
+
+
+def _init_caps(scenario: str, yards: list[Yard]) -> None:
+    for yard in yards:
+        for field in CAPACITY_FIELDS:
+            st.session_state.setdefault(_cap_key(scenario, yard.yard_id, field), _seed_value(yard, field))
+
+
+def _capacity_overrides(scenario: str, yards: list[Yard]) -> dict[str, dict[str, float]]:
+    """Only limits the manager moved. Untouched limits keep the exact file value."""
+    overrides: dict[str, dict[str, float]] = {}
+    for yard in yards:
+        for field in CAPACITY_FIELDS:
+            value = float(st.session_state[_cap_key(scenario, yard.yard_id, field)])
+            if abs(value - _seed_value(yard, field)) > 1e-9:
+                overrides.setdefault(yard.yard_id, {})[field] = value
+    return overrides
+
+
+def _set_cap(key: str, value: float) -> None:
+    st.session_state[key] = float(value)
+
+
+def _sync(widget_key: str, key: str) -> None:
+    st.session_state[key] = st.session_state[widget_key]
+
+
+def _restore_caps(scenario: str, yards: list[Yard]) -> None:
+    for yard in yards:
+        for field in CAPACITY_FIELDS:
+            st.session_state[_cap_key(scenario, yard.yard_id, field)] = _seed_value(yard, field)
+
+
+def _use_upload(cohorts: list[Cohort], mode: str) -> None:
+    st.session_state.uploaded_cohorts = list(cohorts)
+    st.session_state.upload_mode = mode
+
+
+def _clear_upload() -> None:
+    st.session_state.uploaded_cohorts = []
 
 
 def _set_cost(value: float) -> None:
@@ -95,14 +151,13 @@ def _cohort(context: Context, cohort_id: str):
 
 
 def _init_state() -> None:
-    _, yards = load_demo("shortage")
-    txa = next(yard for yard in yards if yard.yard_id == DEMO_YARD_ID)
     st.session_state.setdefault("page", "Overview")
     st.session_state.setdefault("cohort_id", PRIORITY_COHORT_ID)
     st.session_state.setdefault("scenario_label", "Shortage")
     st.session_state.setdefault("objective", "operating_loss")
     st.session_state.setdefault("morbidity_cost", Assumptions().morbidity_cost_per_case)
-    st.session_state.setdefault("staff_txa", float(txa.staff_hours))
+    st.session_state.setdefault("uploaded_cohorts", [])
+    st.session_state.setdefault("upload_mode", "add")
 
 
 def _scenario_name() -> str:
@@ -166,33 +221,44 @@ def page_overview(context: Context, result, practice) -> None:
         alt="Bar chart of standard-care expected cases by cohort. Lot 4401 is highlighted.",
     )
 
-    top = context.scored[PRIORITY_COHORT_ID]
-    st.markdown(f"**Why Lot 4401 ranks first.** {why_line(top)}")
+    top_id = context.ranked_ids[0]
+    top_cohort = _cohort(context, top_id)
+    st.markdown(f"**Why {top_cohort.cohort_name} ranks first.** {why_line(context.scored[top_id])}")
     _tag("Driver coefficients are assumptions. Head count is synthetic and only scales the cases.")
+    incomplete = [cid for cid in context.ranked_ids if not context.scored[cid].confident_call]
     left, right = st.columns(2)
     with left:
         st.button(
-            "Open Lot 4401",
+            f"Open {top_cohort.cohort_name}",
             type="primary",
             on_click=_go,
-            args=("Cohort", PRIORITY_COHORT_ID),
+            args=("Cohort", top_id),
             key="open_priority",
         )
     with right:
-        st.button(
-            "Open the incomplete record",
-            on_click=_go,
-            args=("Cohort", INCOMPLETE_COHORT_ID),
-            key="open_incomplete",
-        )
+        if incomplete:
+            st.button(
+                "Open the incomplete record",
+                on_click=_go,
+                args=("Cohort", incomplete[0]),
+                key="open_incomplete",
+            )
 
     if practice.violations:
         st.warning("Current practice is not feasible under these limits. " + " ".join(practice.violations))
     elif result.feasible:
         st.success("Current practice fits these limits, and a feasible allocation is ready on the Optimizer screen.")
 
-    st.subheader("CSV check")
-    _tag("Accepted rows are scored beside the seeded scenario. They do not replace it.")
+    st.subheader("Upload cohorts")
+    _tag(
+        "Rows are checked first. Accepted rows can be added to the plan or replace the seeded cohorts; "
+        "the optimizer then re-solves with them against the same yard limits."
+    )
+    active = st.session_state.uploaded_cohorts
+    if active:
+        how = "replacing the seeded cohorts" if st.session_state.upload_mode == "replace" else "added to the seeded cohorts"
+        st.info(f"The plan includes {len(active)} uploaded cohort(s), {how}.")
+        st.button("Remove uploaded cohorts from the plan", on_click=_clear_upload, key="clear_upload")
     upload = st.file_uploader("Cohort CSV", type=["csv"], key="cohort_upload")
     if upload is None:
         st.info("No CSV uploaded.")
@@ -228,6 +294,23 @@ def page_overview(context: Context, result, practice) -> None:
                 }
             )
         st.dataframe(pd.DataFrame(scored_rows), hide_index=True, width="stretch")
+        accepted = list(checked.accepted)
+        one, two = st.columns(2)
+        with one:
+            st.button(
+                "Add accepted rows to the plan",
+                type="primary",
+                on_click=_use_upload,
+                args=(accepted, "add"),
+                key="upload_add",
+            )
+        with two:
+            st.button(
+                "Replace seeded cohorts with these rows",
+                on_click=_use_upload,
+                args=(accepted, "replace"),
+                key="upload_replace",
+            )
     if checked.issues:
         st.dataframe(
             pd.DataFrame(
@@ -407,52 +490,74 @@ def page_compare(context: Context) -> None:
 
 def page_optimizer(context: Context, result, practice, scenario: str, seeded) -> None:
     st.markdown("**Hard limits:** staff hours, pen space, and treatment throughput. Welfare floors stay on.")
-    _tag("The live control is staff hours on TX-A. Pen and treatment do not have a second slider.")
-    if scenario != "shortage":
-        st.info("Normal mix uses relaxed capacities. The staff-cut demo is the shortage scenario.")
-    else:
+    _tag(
+        "Every yard's arrival-week limits are live. Move any slider and the plan re-solves. "
+        "Seeded values come from the synthetic yard file."
+    )
+    yards = list(context.yards.values())
+    one, two = st.columns(2)
+    if scenario == "shortage":
         txa = context.yards[DEMO_YARD_ID]
-        cut = float(txa.demo_staff_hours)
-        seed = float(txa.staff_hours)
-        slider_min = float(int(cut // 2))
-        st.slider(
-            "TX-A arrival-week staff hours",
-            min_value=slider_min,
-            max_value=seed,
-            step=1.0,
-            key="staff_txa",
-            help="Synthetic processing hours. Standard care is the welfare floor.",
-        )
-        one, two = st.columns(2)
         with one:
             st.button(
                 "Apply demo staff cut",
                 type="primary",
                 key="demo_cut",
-                on_click=_set_staff,
-                args=(cut,),
+                on_click=_set_cap,
+                args=(_cap_key(scenario, DEMO_YARD_ID, "staff_hours"), float(txa.demo_staff_hours)),
             )
-        with two:
-            st.button("Restore seeded staff", key="restore_staff", on_click=_set_staff, args=(seed,))
-        _tag(f"Seeded {seed:.0f} h. Demo cut {cut:.0f} h, which is the standard-care floor. Below that, the plan is refused.")
+        _tag(
+            f"Demo cut sets TX-A staff to {txa.demo_staff_hours:.0f} h, the standard-care floor. "
+            "Below a yard's floor, the plan is refused."
+        )
+    with two:
+        st.button("Restore seeded limits", key="restore_caps", on_click=_restore_caps, args=(scenario, yards))
+    columns = st.columns(len(yards))
+    for column, yard in zip(columns, yards):
+        with column:
+            st.markdown(f"**{yard.yard_id}** · {yard.yard_name}")
+            for field in CAPACITY_FIELDS:
+                label, step = CAP_SPEC[field]
+                key = _cap_key(scenario, yard.yard_id, field)
+                widget = f"w_{key}"
+                seed = _seed_value(yard, field)
+                st.session_state[widget] = float(st.session_state[key])
+                st.slider(
+                    f"{yard.yard_id} {label}",
+                    min_value=0.0,
+                    max_value=float(max(seed * 2, step * 10)),
+                    step=step,
+                    key=widget,
+                    on_change=_sync,
+                    args=(widget, key),
+                    help=f"Seeded {seed:,.2f}. Synthetic arrival-week limit.",
+                )
 
     if not result.feasible:
         st.error(result.message)
     else:
-        action = result.assignment.get(PRIORITY_COHORT_ID, "")
-        changed = (
-            seeded is not None
-            and seeded.feasible
-            and seeded.assignment.get(PRIORITY_COHORT_ID) != action
-        )
-        if changed:
+        focus = context.ranked_ids[0]
+        names = {cohort.cohort_id: cohort.cohort_name for cohort in context.cohorts}
+        action = result.assignment.get(focus, "")
+        moved = []
+        if seeded is not None and seeded.feasible:
+            moved = [
+                cid
+                for cid in context.ranked_ids
+                if seeded.assignment.get(cid) != result.assignment.get(cid)
+            ]
+        if moved:
+            changes = "; ".join(
+                f"{names[cid]} from {action_label(seeded.assignment[cid])} to {action_label(result.assignment[cid])}"
+                for cid in moved
+            )
             st.success(
-                f"Staff hours changed Lot 4401 from {action_label(seeded.assignment[PRIORITY_COHORT_ID])} "
-                f"to {action_label(action)}. Cases, operating loss, and antimicrobial exposure updated from this solve."
+                f"Yard limits changed {changes}. "
+                "Cases, operating loss, and antimicrobial exposure updated from this solve."
             )
         else:
             st.success(
-                f"Feasible plan. Lot 4401 is on {action_label(action)}. "
+                f"Feasible plan. {names[focus]} is on {action_label(action)}. "
                 "Staff, pen, and treatment are within their limits."
             )
 
@@ -564,15 +669,19 @@ def page_optimizer(context: Context, result, practice, scenario: str, seeded) ->
         )
 
 
-def page_export(context: Context, result, practice, scenario: str) -> None:
-    if scenario == "shortage":
-        txa = context.yards[DEMO_YARD_ID]
-        note = (
-            f"TX-A staff hours in this solve: {float(st.session_state.staff_txa):.1f} "
-            f"(seeded {txa.staff_hours:.1f}, demo cut {txa.demo_staff_hours:.1f})."
-        )
+def page_export(context: Context, result, practice, scenario: str, overrides) -> None:
+    if overrides:
+        parts = []
+        for yard_id, fields in overrides.items():
+            yard = context.yards[yard_id]
+            for field, value in fields.items():
+                parts.append(f"{yard_id} {CAP_SPEC[field][0]} {value:,.2f} (seeded {getattr(yard, field):,.2f})")
+        note = "Manager-set limits in this solve: " + "; ".join(parts) + "."
     else:
-        note = "Normal mix uses relaxed capacities. The staff-cut demo is the shortage scenario."
+        note = f"Seeded {scenario} yard limits from the synthetic file."
+    uploaded = st.session_state.uploaded_cohorts
+    if uploaded:
+        note += f" Plan includes {len(uploaded)} uploaded cohort(s) ({st.session_state.upload_mode})."
     text = decision_summary(context, result, practice, scenario, note)
     if result.feasible:
         st.success("Decision summary ready.")
@@ -603,18 +712,27 @@ def main() -> None:
     except Exception as exc:
         st.error(f"Demo files could not be loaded. {exc}")
         st.stop()
+    uploaded = list(st.session_state.uploaded_cohorts)
+    skipped = 0
+    if uploaded:
+        if st.session_state.upload_mode == "replace":
+            cohorts = uploaded
+        else:
+            seen = {cohort.cohort_id for cohort in cohorts}
+            extra = [cohort for cohort in uploaded if cohort.cohort_id not in seen]
+            skipped = len(uploaded) - len(extra)
+            cohorts = cohorts + extra
     if not cohorts:
         st.info("No cohorts in this scenario.")
         st.stop()
+    _init_caps(scenario, yards)
+    overrides = _capacity_overrides(scenario, yards)
 
     context = build_context(cohorts, yards, assumptions)
     if st.session_state.cohort_id not in context.scored:
         st.session_state.cohort_id = context.ranked_ids[0]
 
-    staff_override = None
     seeded = None
-    if scenario == "shortage":
-        staff_override = {DEMO_YARD_ID: float(st.session_state.staff_txa)}
     with st.spinner("Solving the arrival-week plan…"):
         try:
             result = solve(
@@ -622,7 +740,7 @@ def main() -> None:
                 context.metrics,
                 context.yards,
                 objective=st.session_state.objective,
-                staff_hours=staff_override,
+                capacities=overrides,
             )
             practice_assignment = {
                 cohort.cohort_id: context.practice[cohort.cohort_id] for cohort in context.cohorts
@@ -632,17 +750,15 @@ def main() -> None:
                 context.cohorts,
                 context.metrics,
                 context.yards,
-                staff_hours=staff_override,
                 objective="operating_loss",
+                capacities=overrides,
             )
-            seed_hours = context.yards[DEMO_YARD_ID].staff_hours
-            if scenario == "shortage" and abs(float(st.session_state.staff_txa) - seed_hours) > 0.05:
+            if overrides:
                 seeded = solve(
                     context.cohorts,
                     context.metrics,
                     context.yards,
                     objective=st.session_state.objective,
-                    staff_hours=None,
                 )
         except Exception as exc:
             st.error(f"The optimizer could not run. {exc}")
@@ -652,6 +768,12 @@ def main() -> None:
     st.sidebar.radio("Scenario", ["Shortage", "Normal mix"], key="scenario_label")
     st.sidebar.caption(f"Objective: {OBJECTIVE_LABEL[st.session_state.objective]}")
     st.sidebar.caption(f"Morbidity cost assumption: ${float(st.session_state.morbidity_cost):.2f}")
+    if uploaded:
+        st.sidebar.caption(f"Uploaded cohorts in plan: {len(uploaded) - skipped}")
+    if skipped:
+        st.sidebar.caption(f"{skipped} uploaded row(s) skipped: cohort_id already in the seeded file.")
+    if overrides:
+        st.sidebar.caption("Yard limits: manager-set")
     st.sidebar.caption("Synthetic demo. No login. No live weather.")
 
     st.title("BRD Command Center")
@@ -668,7 +790,7 @@ def main() -> None:
     elif page == "Optimizer":
         page_optimizer(context, result, practice, scenario, seeded)
     else:
-        page_export(context, result, practice, scenario)
+        page_export(context, result, practice, scenario, overrides)
 
 
 main()

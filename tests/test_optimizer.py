@@ -132,3 +132,41 @@ def test_three_objectives_and_the_cost_flip():
     assert flipped.feasible
     assert flipped.assignment[PRIORITY_COHORT_ID] == "vet_review"
     assert flipped.by_cohort[PRIORITY_COHORT_ID].veterinary_review_required
+
+
+def test_any_yard_limit_can_be_overridden_and_shortfall_is_named():
+    context = _shortage()
+    kas = context.yards["KS-B"]
+    tight_pen = solve(
+        context.cohorts,
+        context.metrics,
+        context.yards,
+        capacities={"KS-B": {"pen_capacity_sqft": kas.pen_capacity_sqft - 250}},
+    )
+    assert not tight_pen.feasible
+    assert "KS-B pen needs at least" in tight_pen.message
+
+    tight_treat = solve(
+        context.cohorts,
+        context.metrics,
+        context.yards,
+        capacities={"KS-A": {"treatment_slots": 1.0}},
+    )
+    assert not tight_treat.feasible
+    assert "KS-A treatment needs at least" in tight_treat.message
+
+    roomy = solve(
+        context.cohorts,
+        context.metrics,
+        context.yards,
+        capacities={"KS-B": {"pen_capacity_sqft": kas.pen_capacity_sqft * 2, "staff_hours": 400.0}},
+    )
+    assert roomy.feasible
+    assert roomy.by_yard["KS-B"].pen_capacity == pytest.approx(kas.pen_capacity_sqft * 2)
+    assert roomy.by_yard["KS-B"].staff_capacity == pytest.approx(400.0)
+
+
+def test_unknown_capacity_field_is_rejected():
+    context = _shortage()
+    with pytest.raises(KeyError):
+        solve(context.cohorts, context.metrics, context.yards, capacities={"TX-A": {"bunks": 1.0}})
