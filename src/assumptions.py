@@ -94,6 +94,24 @@ class Assumptions:
         ("arrival_quarter", 0.10),
     )
 
+    # How a cohort with unknown fields is planned. Dropping an unknown field's term
+    # is the same as giving it the reference value, so the default plans on the
+    # worst case across the unknown states instead. Options: worst_case, midpoint, reference.
+    unknown_planning: str = "worst_case"
+
+    # Mortality. Published inputs, derived case fatality (see case_fatality below).
+    # USDA APHIS NAHMS Feedlot 2017 (2019 report), table A.6: share of cattle that died,
+    # placed under 700 lb versus 700 lb or more.
+    death_rate_light: float = 0.023
+    death_rate_heavy: float = 0.012
+    death_weight_split_lb: float = 700.0
+    # BRD causes 50-80% of feedlot deaths (Weber et al. 2024, citing Edwards 1996). Midpoint.
+    brd_share_of_deaths: float = 0.65
+    # 65-80% of BRD cases occur in the first 45 days on feed (Adekunle and Kaniyamattam 2026). Midpoint.
+    brd_first45_share: float = 0.725
+    # Mean 45-day BRD morbidity across 1,733 cohorts (Rojas et al. 2022).
+    population_morbidity_45d: float = 0.063
+
     # Bounds used only to show the range across unknown states. Not imputed values.
     distance_band_low_mi: float = 50.0
     distance_band_high_mi: float = 800.0
@@ -124,6 +142,34 @@ class Assumptions:
 
     def missing_sigma(self, key: str) -> float:
         return dict(self.sigma_missing).get(key, 0.0)
+
+
+UNKNOWN_PLANNING_LABEL: dict[str, str] = {
+    "worst_case": "Worst case of the unknown-state range",
+    "midpoint": "Midpoint of the unknown-state range",
+    "reference": "Reference profile (same as filling unknowns with reference values)",
+}
+
+
+def case_fatality(arrival_weight_lb: float, assumptions: Assumptions) -> float:
+    """BRD deaths per 45-day BRD case, by placement weight class.
+
+    Per head, BRD deaths over the feeding period are the all-cause death rate times
+    the BRD share of deaths. The first-45-day share of those, divided by the mean
+    45-day morbidity, gives deaths per case. Deaths are assumed to follow cases, so an
+    action that prevents cases prevents the matching deaths. Derived, not measured.
+    """
+    rate = (
+        assumptions.death_rate_light
+        if arrival_weight_lb < assumptions.death_weight_split_lb
+        else assumptions.death_rate_heavy
+    )
+    return (
+        rate
+        * assumptions.brd_share_of_deaths
+        * assumptions.brd_first45_share
+        / assumptions.population_morbidity_45d
+    )
 
 
 def efficacy_for(action_id: str, assumptions: Assumptions) -> float:

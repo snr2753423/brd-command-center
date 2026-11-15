@@ -114,7 +114,7 @@ def render_page() -> str:
     for rank, cohort_id in enumerate(context.ranked_ids, start=1):
         cohort = _cohort(context, cohort_id)
         scored = context.scored[cohort_id]
-        morbidity = "Withheld" if not scored.confident_call else pct(scored.morbidity)
+        morbidity = "Withheld" if not scored.confident_call else pct(scored.planning_morbidity)
         rows.append(
             "<tr>"
             f"<td>{rank}</td>"
@@ -132,7 +132,7 @@ def render_page() -> str:
         if practice.violations
         else "Current practice fits these limits."
     )
-    shown = "Withheld" if not incomplete_score.confident_call else pct(incomplete_score.morbidity)
+    shown = "Withheld" if not incomplete_score.confident_call else pct(incomplete_score.planning_morbidity)
     totals = (
         f"<p>Expected cases {_e(num(seeded.totals.expected_cases))} to {_e(num(cut.totals.expected_cases))}. "
         f"Operating loss {_e(money(seeded.totals.operating_loss))} to {_e(money(cut.totals.operating_loss))}. "

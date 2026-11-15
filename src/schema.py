@@ -51,12 +51,14 @@ OBJECTIVES: tuple[str, ...] = (
     "operating_loss",
     "modeled_morbidity",
     "antimicrobial_exposure",
+    "modeled_mortality",
 )
 
 OBJECTIVE_LABEL: dict[str, str] = {
     "operating_loss": "Operating loss",
     "modeled_morbidity": "Modeled morbidity",
     "antimicrobial_exposure": "Antimicrobial exposure",
+    "modeled_mortality": "Expected BRD deaths",
 }
 
 PRIORITY_COHORT_ID = "TXA-4401"

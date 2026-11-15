@@ -50,7 +50,8 @@ Shortage capacities are derived by `src/capacities.py` from the same action metr
 
 - Current practice: veterinary review if arrival weight is under 600 lb and source count is at least 2. Otherwise standard care. Weight of exactly 600 lb is not light.
 - Confident call: withheld if travel, weaning, or vaccination is unknown. Reduced if another field is unknown. Confident if none are.
-- Planning morbidity uses only known fields. The screen also shows the range across unknown states. That range is not an imputed value.
+- Planning morbidity: a cohort with every field known is planned on its own estimate. Leaving an unknown field out of the score would equal giving it the reference value, so a cohort with unknowns is planned on the worst case across its unknown states by default (the manager can switch to the midpoint or the reference profile). The range is not written back onto the row.
+- Deaths: expected cases times BRD deaths per case for the weight class (under 700 lb or not), derived from published rates. See the evidence registry.
 
 ## Evidence tags
 

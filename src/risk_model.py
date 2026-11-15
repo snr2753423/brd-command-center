@@ -44,6 +44,9 @@ class Scored:
     state_high: float
     interval_low: float
     interval_high: float
+    # The rate the plan uses. Equal to `morbidity` when every field is known.
+    planning_morbidity: float
+    planning_basis: str  # complete | worst_case | midpoint | reference
 
     @property
     def confident_call(self) -> bool:
@@ -74,7 +77,12 @@ def _driver(
 def point_drivers(
     cohort: Cohort, weather_stress: bool, assumptions: Assumptions
 ) -> tuple[list[Driver], float]:
-    """Log-odds from known fields only. Unknown fields contribute nothing and are not filled."""
+    """Log-odds from known fields only.
+
+    An unknown field adds no term. That is arithmetically the same as giving it the
+    reference-profile value, so this sum is the reference-profile estimate. The plan
+    does not use it for cohorts with unknowns; see `planning_morbidity`.
+    """
     drivers: list[Driver] = []
     total = logit(assumptions.reference_morbidity)
 
@@ -392,6 +400,20 @@ def score_cohort(cohort: Cohort, weather_stress: bool, assumptions: Assumptions)
         _, tweaked_logit = point_drivers(tweaked, weather_stress, assumptions)
         state_values.append(expit(tweaked_logit))
     interval_low, interval_high = probability_interval(point, sigma)
+    state_low, state_high = min(state_values), max(state_values)
+    if not missing:
+        basis, planning = "complete", morbidity
+    else:
+        basis = assumptions.unknown_planning
+        if basis == "worst_case":
+            planning = state_high
+        elif basis == "midpoint":
+            planning = (state_low + state_high) / 2.0
+        elif basis == "reference":
+            planning = morbidity
+        else:
+            raise KeyError(basis)
+    planning_logit = logit(planning)
     return Scored(
         cohort=cohort,
         weather_stress_flag=weather_stress,
@@ -399,13 +421,15 @@ def score_cohort(cohort: Cohort, weather_stress: bool, assumptions: Assumptions)
         logit=point,
         sigma=sigma,
         morbidity=morbidity,
-        p_high_risk=p_exceeds(point, sigma, assumptions.high_risk_benchmark),
-        above_benchmark=morbidity >= assumptions.high_risk_benchmark,
+        p_high_risk=p_exceeds(planning_logit, sigma, assumptions.high_risk_benchmark),
+        above_benchmark=planning >= assumptions.high_risk_benchmark,
         confidence=confidence,
-        state_low=min(state_values),
-        state_high=max(state_values),
+        state_low=state_low,
+        state_high=state_high,
         interval_low=interval_low,
         interval_high=interval_high,
+        planning_morbidity=planning,
+        planning_basis=basis,
     )
 
 

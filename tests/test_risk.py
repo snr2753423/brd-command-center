@@ -95,3 +95,36 @@ def pytest_approx(value: float):
     import pytest
 
     return pytest.approx(value, abs=1e-6)
+
+
+def test_unknown_fields_are_planned_on_the_worst_case_by_default():
+    from dataclasses import replace as _replace
+
+    assumptions = Assumptions()
+    cohort = reference_cohort(travel_distance_mi=None, weaning_status="unknown", vaccination_status="unknown")
+    scored = score_cohort(cohort, False, assumptions)
+    assert scored.planning_basis == "worst_case"
+    assert scored.planning_morbidity == pytest_approx(scored.state_high)
+    # The known-fields sum equals the reference profile, which is why it is not the plan.
+    assert scored.morbidity == pytest_approx(score_cohort(reference_cohort(), False, assumptions).morbidity)
+    assert scored.planning_morbidity > scored.morbidity
+
+    middle = score_cohort(cohort, False, _replace(assumptions, unknown_planning="midpoint"))
+    assert middle.planning_morbidity == pytest_approx((scored.state_low + scored.state_high) / 2)
+    reference = score_cohort(cohort, False, _replace(assumptions, unknown_planning="reference"))
+    assert reference.planning_morbidity == pytest_approx(scored.morbidity)
+
+
+def test_complete_records_plan_on_their_own_estimate():
+    scored = score_cohort(reference_cohort(), False, Assumptions())
+    assert scored.planning_basis == "complete"
+    assert scored.planning_morbidity == pytest_approx(scored.morbidity)
+
+
+def test_incomplete_demo_lot_is_planned_at_its_upper_bound():
+    cohorts, yards = load_demo("shortage")
+    context = build_context(cohorts, yards)
+    incomplete = context.scored[INCOMPLETE_COHORT_ID]
+    assert incomplete.planning_morbidity == pytest_approx(incomplete.state_high)
+    metric = context.metrics[INCOMPLETE_COHORT_ID]["standard_care"]
+    assert metric.morbidity == pytest_approx(incomplete.state_high)

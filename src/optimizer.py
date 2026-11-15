@@ -44,6 +44,7 @@ class Totals:
     staff_hours: float
     pen_sqft: float
     treatment_slots: float
+    expected_deaths: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,7 @@ def _totals(metrics: list[Metric]) -> Totals:
         staff_hours=sum(item.staff_hours for item in metrics),
         pen_sqft=sum(item.pen_sqft for item in metrics),
         treatment_slots=sum(item.treatment_slots for item in metrics),
+        expected_deaths=sum(item.expected_deaths for item in metrics),
     )
 
 
@@ -135,6 +137,8 @@ def _objective_coef(metric: Metric, objective: str) -> float:
         return metric.expected_cases
     if objective == "antimicrobial_exposure":
         return metric.amu
+    if objective == "modeled_mortality":
+        return metric.expected_deaths
     raise KeyError(objective)
 
 

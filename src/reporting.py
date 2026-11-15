@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .assumptions import Assumptions
+from .assumptions import UNKNOWN_PLANNING_LABEL, Assumptions, case_fatality
 from .format import money, num, pct
 from .optimizer import Evaluation
 from .pipeline import Context
@@ -35,6 +35,10 @@ def decision_summary(
         f"- Metaphylaxis efficacy {pct(assumptions.metaphylaxis_efficacy)} (published, Rojas 2022 Table 3)",
         f"- Enhanced surveillance efficacy {pct(assumptions.surveillance_efficacy)} (assumption)",
         f"- Supportive management efficacy {pct(assumptions.supportive_efficacy)} (assumption)",
+        f"- Unknown fields planned at: {UNKNOWN_PLANNING_LABEL[assumptions.unknown_planning]}",
+        f"- BRD deaths per case {pct(case_fatality(600, assumptions))} under "
+        f"{assumptions.death_weight_split_lb:.0f} lb, {pct(case_fatality(800, assumptions))} at or above "
+        "(derived from USDA 2019 death rates, the BRD share of deaths, and Rojas 2022 mean morbidity)",
         "- Medication actions require veterinary review. This file does not prescribe.",
         "",
         f"Recommended plan: {recommended.status}.",
@@ -56,6 +60,7 @@ def decision_summary(
                 f"- Expected cases: {num(recommended.totals.expected_cases)} vs {num(practice.totals.expected_cases)}",
                 f"- Operating loss: {money(recommended.totals.operating_loss)} vs {money(practice.totals.operating_loss)}",
                 f"- Antimicrobial exposure: {num(recommended.totals.amu)} vs {num(practice.totals.amu)} synthetic units",
+                f"- Expected BRD deaths: {num(recommended.totals.expected_deaths)} vs {num(practice.totals.expected_deaths)}",
                 "",
                 "Cohorts",
             ]
@@ -74,7 +79,9 @@ def decision_summary(
             lines.append(
                 f"- {cohort.cohort_id} {cohort.cohort_name} | {action_label(metric.action_id)} | "
                 f"current practice {ACTION_LABEL[practice_action]} | {call} | "
-                f"cases {num(metric.expected_cases)} | loss {money(metric.operating_loss)} | "
+                f"planning morbidity {pct(metric.morbidity)} | "
+                f"cases {num(metric.expected_cases)} | deaths {num(metric.expected_deaths)} | "
+                f"loss {money(metric.operating_loss)} | "
                 f"exposure {num(metric.amu)} | staff {num(metric.staff_hours)} h | "
                 f"veterinary review required: {vet}"
             )
@@ -92,8 +99,9 @@ def decision_summary(
     lines.extend(
         [
             "",
-            "Known-fields morbidity is used only as a planning figure. Unknown transport,",
-            "weaning, and vaccination are not filled with a normal value.",
+            "A cohort with unknown fields is planned on its unknown-state range, not on a",
+            "filled-in typical value. Missing transport, weaning, or vaccination still withholds",
+            "a confident call. Deaths are derived from published rates and follow cases.",
             "Weather-stress flags are synthetic yard fields. There is no live weather API.",
         ]
     )

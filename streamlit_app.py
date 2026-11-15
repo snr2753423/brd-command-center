@@ -8,7 +8,7 @@ from dataclasses import replace
 import pandas as pd
 import streamlit as st
 
-from src.assumptions import Assumptions
+from src.assumptions import UNKNOWN_PLANNING_LABEL, Assumptions, case_fatality
 from src.charts import burden_chart, compare_chart, index_chart, totals_caption
 from src.data_loader import load_demo
 from src.economics import compare_to_practice
@@ -156,6 +156,7 @@ def _init_state() -> None:
     st.session_state.setdefault("scenario_label", "Shortage")
     st.session_state.setdefault("objective", "operating_loss")
     st.session_state.setdefault("morbidity_cost", Assumptions().morbidity_cost_per_case)
+    st.session_state.setdefault("unknown_planning", Assumptions().unknown_planning)
     st.session_state.setdefault("uploaded_cohorts", [])
     st.session_state.setdefault("upload_mode", "add")
 
@@ -191,14 +192,18 @@ def page_overview(context: Context, result, practice) -> None:
     st.subheader("Ranked arrivals")
     _tag(
         "Ranked by standard-care expected cases. "
-        "Morbidity is an assumption-based 45-day estimate. "
+        "Morbidity is an assumption-based 45-day estimate. Cohorts with unknown fields are planned on "
+        "their unknown-state range (worst case by default), not on a typical value. "
         "P(above 15%) is a different number. The 15% benchmark is published."
     )
     rows = []
     for rank, cohort_id in enumerate(context.ranked_ids, start=1):
         cohort = _cohort(context, cohort_id)
         scored = context.scored[cohort_id]
-        morbidity = "Withheld" if not scored.confident_call else pct(scored.morbidity)
+        morbidity = "Withheld" if not scored.confident_call else pct(scored.planning_morbidity)
+        planning = pct(scored.planning_morbidity)
+        if scored.planning_basis != "complete":
+            planning += f" ({scored.planning_basis.replace('_', ' ')})"
         rows.append(
             {
                 "Rank": rank,
@@ -208,6 +213,7 @@ def page_overview(context: Context, result, practice) -> None:
                 "Weight lb": f"{cohort.arrival_weight_lb:.0f}",
                 "Sources": cohort.source_count,
                 "45-day morbidity": morbidity,
+                "Planning figure": planning,
                 "P(above 15%)": pct(scored.p_high_risk),
                 "Confidence": scored.confidence.level,
                 "Current practice": action_label(context.practice[cohort_id]),
@@ -289,7 +295,8 @@ def page_overview(context: Context, result, practice) -> None:
                 {
                     "Cohort": cohort.cohort_id,
                     "Confidence": scored.confidence.level,
-                    "45-day morbidity": "Withheld" if not scored.confident_call else pct(scored.morbidity),
+                    "45-day morbidity": "Withheld" if not scored.confident_call else pct(scored.planning_morbidity),
+                    "Planning figure": pct(scored.planning_morbidity),
                     "Current practice": action_label(preview.practice[cohort.cohort_id]),
                 }
             )
@@ -354,7 +361,8 @@ def page_cohort(context: Context) -> None:
         st.error(
             f"No confident recommendation. Missing {missing}. "
             "Those fields were not filled with a typical value. "
-            "Any known-fields figure is only a planning input."
+            f"The plan uses {UNKNOWN_PLANNING_LABEL[scored.planning_basis].lower()}: "
+            f"{pct(scored.planning_morbidity)}. A veterinarian or manager should confirm the history."
         )
     elif scored.confidence.level == "reduced":
         st.warning(
@@ -389,9 +397,12 @@ def page_cohort(context: Context) -> None:
 
     left, right = st.columns(2)
     with left:
-        shown = "Withheld" if not scored.confident_call else pct(scored.morbidity)
+        shown = "Withheld" if not scored.confident_call else pct(scored.planning_morbidity)
         st.metric("45-day morbidity", shown)
-        _tag("Assumption coefficients. Not the same number as P(above 15%).")
+        _tag(
+            f"Planning figure {pct(scored.planning_morbidity)}. Assumption coefficients. "
+            "Not the same number as P(above 15%)."
+        )
     with right:
         st.metric("P(morbidity ≥ 15%)", pct(scored.p_high_risk))
         _tag("Published 15% benchmark. The probability uses an assumption-based uncertainty band.")
@@ -399,15 +410,22 @@ def page_cohort(context: Context) -> None:
     if scored.confidence.missing_fields:
         st.caption(
             f"Range across unknown states: {pct(scored.state_low)}–{pct(scored.state_high)}. "
-            "Those bounds are assumptions, not filled-in values."
+            "Those bounds are assumptions, not filled-in values. "
+            f"Reference-profile figure (unknowns at reference values): {pct(scored.morbidity)}. "
+            f"Planned at: {UNKNOWN_PLANNING_LABEL[scored.planning_basis].lower()}."
         )
     st.caption(
         f"About 90% band on the known-fields logit: {pct(scored.interval_low)}–{pct(scored.interval_high)} · assumption."
     )
+    cfr = case_fatality(cohort.arrival_weight_lb, context.assumptions)
+    st.caption(
+        f"BRD deaths per case: {pct(cfr)} for this weight class · derived from published rates "
+        "(USDA 2019 death rates, BRD share of deaths, Rojas 2022 mean morbidity). Deaths follow cases."
+    )
     if scored.confident_call and scored.above_benchmark:
-        st.caption("The known-fields point estimate is at or above the published 15% benchmark.")
+        st.caption("The planning estimate is at or above the published 15% benchmark.")
     elif not scored.confident_call:
-        st.caption("Do not treat the known-fields figure as a call against the 15% benchmark.")
+        st.caption("Do not treat the planning figure as a call against the 15% benchmark.")
 
     st.markdown(f"**Drivers.** {why_line(scored)}")
     driver_rows = []
@@ -457,6 +475,8 @@ def page_compare(context: Context) -> None:
                 "Action": action_label(row.action_id),
                 "Cases": num(metric.expected_cases),
                 "Δ cases": num(row.delta_cases),
+                "Deaths": num(metric.expected_deaths),
+                "Δ deaths": num(row.delta_deaths),
                 "Operating loss": money(metric.operating_loss),
                 "Δ loss": money(row.delta_loss),
                 "AM exposure": num(metric.amu),
@@ -472,7 +492,9 @@ def page_compare(context: Context) -> None:
         "Cases: assumption efficacy × synthetic head count. "
         "Loss: $151.18 per case (published, Rojas 2022 Table 3) plus the action's own program cost. "
         "Metaphylaxis is $23.60 per at-risk head (published, same table) and is not inside the case cost. "
-        "Exposure units are synthetic. Staff, pen, and treatment rates are assumptions."
+        "Exposure units are synthetic. Staff, pen, and treatment rates are assumptions. "
+        "Deaths are derived from published rates and are not priced, because the $151.18 already "
+        "covers the lost value of a sick animal."
     )
     st.plotly_chart(
         compare_chart(rows),
@@ -565,7 +587,7 @@ def page_optimizer(context: Context, result, practice, scenario: str, seeded) ->
         st.warning("Named current practice breaks a limit. " + " ".join(practice.violations))
 
     if result.feasible:
-        a, b, c = st.columns(3)
+        a, b, c, d = st.columns(4)
         with a:
             st.metric(
                 "Expected cases",
@@ -590,6 +612,14 @@ def page_optimizer(context: Context, result, practice, scenario: str, seeded) ->
                 delta_color="inverse",
             )
             _tag("Synthetic exposure units")
+        with d:
+            st.metric(
+                "Expected BRD deaths",
+                num(result.totals.expected_deaths),
+                delta=f"{result.totals.expected_deaths - practice.totals.expected_deaths:.1f} vs current practice",
+                delta_color="inverse",
+            )
+            _tag("Derived from published rates · follows cases")
 
         yard_rows = []
         for yard_id, use in result.by_yard.items():
@@ -613,6 +643,7 @@ def page_optimizer(context: Context, result, practice, scenario: str, seeded) ->
                     "Current practice": action_label(context.practice[cohort_id]),
                     "Confidence": scored.confidence.level,
                     "Cases": num(metric.expected_cases),
+                    "Deaths": num(metric.expected_deaths),
                     "Loss": money(metric.operating_loss),
                     "Exposure": num(metric.amu),
                     "Vet review required": "yes" if metric.veterinary_review_required else "no",
@@ -638,7 +669,7 @@ def page_optimizer(context: Context, result, practice, scenario: str, seeded) ->
             format_func=lambda key: OBJECTIVE_LABEL[key],
             key="objective",
         )
-        _tag("Operating loss, modeled morbidity, and antimicrobial exposure are labeled objectives.")
+        _tag("Operating loss, modeled morbidity, antimicrobial exposure, and expected BRD deaths are labeled objectives.")
         st.number_input(
             "Morbidity cost per case ($)",
             min_value=80.0,
@@ -705,6 +736,7 @@ def main() -> None:
     assumptions = replace(
         Assumptions(),
         morbidity_cost_per_case=float(st.session_state.morbidity_cost),
+        unknown_planning=str(st.session_state.unknown_planning),
     )
     scenario = _scenario_name()
     try:
@@ -766,6 +798,14 @@ def main() -> None:
 
     st.sidebar.radio("Screen", PAGES, key="page")
     st.sidebar.radio("Scenario", ["Shortage", "Normal mix"], key="scenario_label")
+    st.sidebar.radio(
+        "Plan cohorts with unknown fields at",
+        list(UNKNOWN_PLANNING_LABEL),
+        format_func=lambda key: UNKNOWN_PLANNING_LABEL[key],
+        key="unknown_planning",
+        help="Leaving an unknown field out of the score equals giving it the reference value. "
+        "Worst case is the cautious default.",
+    )
     st.sidebar.caption(f"Objective: {OBJECTIVE_LABEL[st.session_state.objective]}")
     st.sidebar.caption(f"Morbidity cost assumption: ${float(st.session_state.morbidity_cost):.2f}")
     if uploaded:

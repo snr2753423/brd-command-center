@@ -8,7 +8,7 @@ Lot 4401 is synthetic. Animal: 200 head, steers, 540 lb arrival weight, 4 alread
 
 The known-fields 45-day morbidity is 25.9% (assumption coefficients). P(morbidity ≥ 15%) is 98.9%. Those are different numbers. The 15% line is the published Rojas benchmark. Confidence is confident, because transport and health history are present. The largest assumption contributions are arrival weight, source count, the haul, known unweaned status, known unvaccinated status, and the fourth quarter.
 
-TX-A arrival-week capacity, synthetic: 220 staff hours, pen equal to 250 sq ft per head, and treatment slots equal to the standard-care case load. The other seven cohorts are on the same file so the yard limits can bind. Lot 4388 is the incomplete record. It is not this case. Its travel, weaning, and vaccination are unknown, and the app withholds a confident call rather than filling them in.
+TX-A arrival-week capacity, synthetic: 220 staff hours, pen equal to 250 sq ft per head, and treatment slots equal to the standard-care case load. The other seven cohorts are on the same file so the yard limits can bind. Lot 4388 is the incomplete record. It is not this case. Its travel, weaning, and vaccination are unknown, and the app withholds a confident call rather than filling them in. Leaving those fields out would score it at 16.4%, which is the same as assuming a 100-mile haul and a weaned, vaccinated history. The plan instead uses the worst case across the unknown states, 27.1%.
 
 ## Named baseline rule
 
@@ -20,14 +20,14 @@ Applied to every cohort, the same rule does not fit the shortage file. TX-B woul
 
 ## Alternatives
 
-Each alternative is scored against that rule for Lot 4401. Efficacy and dollars are assumptions. Head count is synthetic. Exposure units are synthetic.
+Each alternative is scored against that rule for Lot 4401. Deaths use 17.2% BRD deaths per case for cattle under 700 lb, derived from published rates. Efficacy other than metaphylaxis is an assumption. Head count is synthetic. Exposure units are synthetic.
 
-| Action | Role | Cases | Operating loss | Exposure | Staff hours |
-|---|---|---|---|---|---|
-| Veterinary review | Baseline rule | 29.4 | $9,073 | 225 | 110 |
-| Standard care | Alternative | 54.8 | $8,290 | 54.8 | 50 |
-| Enhanced surveillance | Alternative | 45.7 | $7,206 | 45.7 | 180 |
-| Supportive management | Alternative | 39.6 | $6,784 | 39.6 | 80 |
+| Action | Role | Cases | BRD deaths | Operating loss | Exposure | Staff hours |
+|---|---|---|---|---|---|---|
+| Veterinary review | Baseline rule | 29.4 | 5.1 | $9,073 | 225 | 110 |
+| Standard care | Alternative | 54.8 | 9.4 | $8,290 | 54.8 | 50 |
+| Enhanced surveillance | Alternative | 45.7 | 7.9 | $7,206 | 45.7 | 180 |
+| Supportive management | Alternative | 39.6 | 6.8 | $6,784 | 39.6 | 80 |
 
 Supportive management has the lowest assumed loss in the table. It does not fit: the shortage yards are full at 250 sq ft per head, and supportive management needs 1.25 times that pen. Pen is a hard constraint.
 
@@ -41,6 +41,6 @@ The demo cut sets TX-A staff to 90 hours. That is the standard-care floor for th
 
 The consequences come from the same solve that picks the action.
 
-For Lot 4401, enhanced surveillance at 220 hours projects about 45.7 cases, $7,206, and 45.7 exposure units. Standard care at 90 hours projects about 54.8 cases, $8,290, and 54.8 exposure units. The lot loses the surveillance reduction. Cases rise by about 9. Staff hours on that lot fall from 180 to 50. Veterinary review is not selected: at these assumed costs it is more expensive than standard care, and 110 hours do not fit in a 90-hour yard.
+For Lot 4401, enhanced surveillance at 220 hours projects about 45.7 cases, $7,206, and 45.7 exposure units. Standard care at 90 hours projects about 54.8 cases, $8,290, and 54.8 exposure units. The lot loses the surveillance reduction. Cases rise by about 9, and expected BRD deaths by about 1.6. Staff hours on that lot fall from 180 to 50. Veterinary review is not selected: at these assumed costs it is more expensive than standard care, and 110 hours do not fit in a 90-hour yard.
 
-For all eight cohorts, the yard totals move from about 182.3 expected cases, $27,858 operating loss, and 182.3 exposure units to about 191.4 cases, $28,941, and 191.4 exposure units. Health is worse. Operating loss is higher, because the surveillance program was saving more case-loss than its $1.50 per head. Antimicrobial exposure rises with the extra therapeutic cases. The cut does not add metaphylaxis. Staff, pen, and treatment on the recommended plan stay inside their capacities. The named baseline rule remains infeasible under the cut, and it was already infeasible before the cut.
+For all eight cohorts, the yard totals move from about 196.0 expected cases, 30.3 BRD deaths, $29,933 operating loss, and 196.0 exposure units to about 205.2 cases, 31.9 deaths, $31,017, and 205.2 exposure units. Health is worse. Operating loss is higher, because the surveillance program was saving more case-loss than its $1.50 per head. Antimicrobial exposure rises with the extra therapeutic cases. The cut does not add metaphylaxis. Staff, pen, and treatment on the recommended plan stay inside their capacities. The named baseline rule remains infeasible under the cut, and it was already infeasible before the cut.

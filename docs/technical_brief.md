@@ -24,15 +24,16 @@ Directional findings in the feedlot BRD literature (Adekunle et al. 2026; Adekun
 
 ## Assumptions
 
-The known-fields score is a logistic curve around an 8% reference profile (750 lb, steer, one source, 100 miles, known weaned, known vaccinated, adapted ration, 12 inches of bunk, second quarter, no weather stress). That 8% is the intercept, not a value pasted into missing history. When a critical field is unknown, the screen shows a range across stated bounds (50 and 800 miles; weaned or not; vaccinated or not). Those bounds are assumptions. They are not a filled-in normal haul or a filled-in health history.
+The score is a logistic curve around an 8% reference profile (750 lb, steer, one source, 100 miles, known weaned, known vaccinated, adapted ration, 12 inches of bunk, second quarter, no weather stress). Leaving an unknown field out of that sum is the same as giving it the reference value. So a cohort with unknowns is planned on the worst case across its unknown states (50 or 800 miles; weaned or not; vaccinated or not), and the manager can switch to the midpoint or the reference profile. Lot 4388 would score 16.4% with its unknowns left out. It is planned at 27.1%.
 
-Expected cases equal cattle already clinically ill, plus the remaining head times the known-fields morbidity times one minus efficacy. Efficacy does not remove cattle that are already sick. Operating loss equals morbidity cost plus program cost, and those dollars are not mixed:
+Expected cases equal cattle already clinically ill, plus the remaining head times the planning morbidity times one minus efficacy. Efficacy does not remove cattle that are already sick. Operating loss equals morbidity cost plus program cost, and those dollars are not mixed:
 
 - Morbidity cost is $151.18 per expected case (published, Rojas 2022 Table 3).
 - Metaphylaxis, and only on veterinary review, is $23.60 per head that is not already clinically ill (published, Rojas 2022 Table 3).
 - Metaphylaxis efficacy is 50% on those at-risk head (published, Rojas 2022 Table 3, citing Avra et al. 2017). It is a modeling input, not a result measured in this demo.
 - Enhanced surveillance is an 18% efficacy assumption and $1.50 per head. Supportive management is a 30% efficacy assumption and $4.00 per head.
 - Antimicrobial exposure is a synthetic unit: one per expected case, plus one per metaphylaxis head. It is not a dollar.
+- Expected BRD deaths are cases times deaths per case: 17.2% under 700 lb and 9.0% at or above. These are derived from the USDA 2019 death rates (2.3% and 1.2%), BRD's 50–80% share of feedlot deaths (Weber et al. 2024), the 65–80% of cases in the first 45 days (Adekunle and Kaniyamattam 2026), and Rojas's 6.3% mean 45-day morbidity. Deaths follow cases and are not priced, because $151.18 already covers a sick animal's lost value.
 
 Staff time is a capacity constraint, not a second labor bill. Rates are assumptions: 0.25, 0.40, 0.55, and 0.90 hours per head for standard care, supportive management, veterinary review, and enhanced surveillance. Pen is an assumption of 250 square feet per head, or 1.25 times that for supportive management. The resource window is the arrival week. That window is an assumption. The morbidity figure remains a 45-day estimate.
 
@@ -40,7 +41,7 @@ Current practice is a named rule, separate from the model. Veterinary review whe
 
 ## Evaluation
 
-Evaluation here is a check that the arithmetic and the solver do what they say. It is not a test of predictive accuracy. `pytest` reports 29 passed, covering:
+Evaluation here is a check that the arithmetic and the solver do what they say. It is not a test of predictive accuracy. `pytest` reports 37 passed, covering:
 
 - Risk math. A lighter weight raises the estimate. A missing haul is stored as unknown, not as 100 miles. Morbidity and P(above 15%) are different numbers. Lot 4388, missing travel, weaning, and vaccination, gets no confident call.
 - Cost accounting. For veterinary review, program cost is at-risk head times $23.60, morbidity cost is expected cases times $151.18, and operating loss is the sum of those two. Changing one constant does not change the other.
@@ -52,9 +53,9 @@ No model was trained on these synthetic labels. No accuracy, sensitivity, or AUC
 
 On the shortage file, pen is full, so supportive management does not fit even though, for Lot 4401, its assumed operating loss is lower than surveillance. Staff is full. TX-A has 220 hours, exactly enough for enhanced surveillance on Lot 4401 (180 hours) and standard care on the other TX-A lot. That is the operating-loss choice at the published constants: about 45.7 expected cases, about $7,206, and about 45.7 exposure units for that lot. The named baseline, veterinary review, has fewer cases (about 29.4) but a higher operating loss (about $9,073) and much higher exposure (about 225 units), and it requires a veterinarian. Applied to the whole file, that rule is already infeasible: TX-B would need 101 staff hours and has 65.
 
-Cutting TX-A staff to 90 hours, the standard-care floor, removes surveillance. The feasible recommendation for Lot 4401 becomes standard care. Yard totals move from about 182.3 cases, $27,858, and 182.3 exposure units to about 191.4 cases, $28,941, and 191.4 exposure units. Health is worse, operating loss is higher, and antimicrobial exposure rises because more cases mean more therapeutic exposure. The plan does not add metaphylaxis to make up the difference. Pen and treatment stay inside their caps. One hour under 90 is refused.
+Cutting TX-A staff to 90 hours, the standard-care floor, removes surveillance. The feasible recommendation for Lot 4401 becomes standard care. Yard totals move from about 196.0 cases, 30.3 BRD deaths, $29,933, and 196.0 exposure units to about 205.2 cases, 31.9 deaths, $31,017, and 205.2 exposure units. Health is worse, operating loss is higher, and antimicrobial exposure rises because more cases mean more therapeutic exposure. The plan does not add metaphylaxis to make up the difference. Pen and treatment stay inside their caps. One hour under 90 is refused.
 
-A separate control can set the case-loss constant to $400. That value is an assumption, not a published cost. At $400, operating loss can select veterinary review for Lot 4401. Minimizing modeled morbidity selects veterinary review at $151.18. Minimizing exposure does not. All three objectives use the same constraints. The veterinary-review flag still means a veterinarian decides.
+A separate control can set the case-loss constant to $400. That value is an assumption, not a published cost. At $400, operating loss can select veterinary review for Lot 4401. Minimizing modeled morbidity or expected deaths selects veterinary review at $151.18. Minimizing exposure does not. All three objectives use the same constraints. The veterinary-review flag still means a veterinarian decides.
 
 ## Limitations
 

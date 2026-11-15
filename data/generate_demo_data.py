@@ -281,7 +281,7 @@ def _print_story(directory: Path) -> None:
         scored = context.scored[cohort_id]
         burden = context.metrics[cohort_id]["standard_care"].expected_cases
         print(
-            f"  {cohort_id} {scored.morbidity:.3f} {scored.confidence.level} "
+            f"  {cohort_id} {scored.planning_morbidity:.3f} {scored.confidence.level} "
             f"{context.practice[cohort_id]} cases {burden:.1f} "
             f"P(high) {scored.p_high_risk:.3f}"
         )
@@ -303,7 +303,8 @@ def _print_story(directory: Path) -> None:
         print(
             f"cases {full.totals.expected_cases:.2f} -> {cut.totals.expected_cases:.2f}  "
             f"loss {full.totals.operating_loss:.0f} -> {cut.totals.operating_loss:.0f}  "
-            f"amu {full.totals.amu:.2f} -> {cut.totals.amu:.2f}"
+            f"amu {full.totals.amu:.2f} -> {cut.totals.amu:.2f}  "
+            f"deaths {full.totals.expected_deaths:.2f} -> {cut.totals.expected_deaths:.2f}"
         )
         for yard_id, use in full.by_yard.items():
             print(

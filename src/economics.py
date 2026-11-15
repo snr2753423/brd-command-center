@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .assumptions import Assumptions, efficacy_for
+from .assumptions import Assumptions, case_fatality, efficacy_for
 from .risk_model import Scored
 from .schema import ACTIONS, Cohort
 
@@ -34,6 +34,7 @@ class Metric:
     veterinary_review_required: bool
     metaphylaxis_head: float
     at_risk_head: int
+    expected_deaths: float
 
 
 def action_metrics(
@@ -47,9 +48,12 @@ def action_metrics(
     efficacy = min(max(efficacy_for(action_id, assumptions), 0.0), 0.95)
     at_risk = cohort.head_count - cohort.clinically_ill_head
     # Cattle already clinically ill stay cases. Efficacy applies only to the rest.
-    residual = at_risk * scored.morbidity * (1.0 - efficacy)
+    # Planning morbidity: worst case across unknown states unless the manager picks another basis.
+    residual = at_risk * scored.planning_morbidity * (1.0 - efficacy)
     expected_cases = cohort.clinically_ill_head + residual
     morbidity_cost = expected_cases * assumptions.morbidity_cost_per_case
+    # Deaths follow cases. Not priced: the $151.18 lost value already covers a sick animal.
+    expected_deaths = expected_cases * case_fatality(cohort.arrival_weight_lb, assumptions)
 
     metaphylaxis_head = 0.0
     if action_id == "vet_review":
@@ -77,7 +81,7 @@ def action_metrics(
     return Metric(
         cohort_id=cohort.cohort_id,
         action_id=action_id,
-        morbidity=scored.morbidity,
+        morbidity=scored.planning_morbidity,
         confident_call=scored.confident_call,
         expected_cases=expected_cases,
         morbidity_cost=morbidity_cost,
@@ -91,6 +95,7 @@ def action_metrics(
         veterinary_review_required=action_id == "vet_review",
         metaphylaxis_head=metaphylaxis_head,
         at_risk_head=at_risk,
+        expected_deaths=expected_deaths,
     )
 
 
@@ -109,6 +114,7 @@ class CompareRow:
     delta_loss: float
     delta_amu: float
     delta_staff: float
+    delta_deaths: float
 
 
 def compare_to_practice(
@@ -132,6 +138,7 @@ def compare_to_practice(
                 delta_loss=metric.operating_loss - baseline.operating_loss,
                 delta_amu=metric.amu - baseline.amu,
                 delta_staff=metric.staff_hours - baseline.staff_hours,
+                delta_deaths=metric.expected_deaths - baseline.expected_deaths,
             )
         )
     return rows
