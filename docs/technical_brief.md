@@ -13,7 +13,7 @@ Every figure carries one of four tags.
 - **Published.** From Rojas et al. 2022: the 15% high-risk cutoff for 45-day BRD morbidity, the mean morbidity (6.30%), the high-risk share (10.85%), and the AUC range (0.682–0.789) of its models. From its Table 3: $151.18 cost of a morbid animal, $23.60 metaphylaxis cost per animal, and 50% metaphylaxis efficacy. From USDA (2019): death rates of 2.3% for cattle placed under 700 lb and 1.2% for heavier cattle.
 - **Derived.** BRD deaths per case, and the calibrated intercept, spread, and coefficient scale of the risk score.
 - **Synthetic.** The eight demo cohorts, four yards, capacities, and weather-stress flags (`data/generate_demo_data.py`). The 1,733-cohort calibration population (`data/calibrate_to_rojas.py`).
-- **Assumption.** Coefficient directions and relative sizes, the non-metaphylaxis effect sizes, program costs, staff and pen rates, exposure units, and the calibration population's field mix.
+- **Assumption.** Relative coefficient sizes, the non-metaphylaxis effect sizes, program costs, staff and pen rates, exposure units, and the calibration population's field mix.
 
 No dataset was provided, and Rojas cattle-level records are not public. All rows are synthetic and shareable. Unknown cells stay unknown. A missing head count or arrival weight rejects the row, because those fields define the cohort. A missing haul, weaning, or vaccination status withholds a confident call.
 
@@ -41,6 +41,16 @@ Leaving an unknown field out of a logistic sum is the same as giving it the refe
 - **Antimicrobial exposure** is a synthetic unit: one per case plus one per metaphylaxis head.
 
 Staff hours (0.25, 0.40, 0.55, and 0.90 h per head) and pen (250 sq ft per head; 1.25× for supportive management) are hard per-yard limits in an integer program (PuLP/CBC). Treatment throughput is a third limit. Standard-care monitoring and treatment of already-ill cattle are welfare floors the solver cannot cut. The objective is operating loss, modeled morbidity, antimicrobial exposure, or expected deaths. Current practice is a named rule: veterinary review when a cohort is under 600 lb and from at least two sources, and standard care otherwise.
+
+## Dashboard
+
+The Streamlit app runs locally with no paid service and has five screens.
+
+- **Overview.** Ranks cohorts and shows each yard's limits. Managers can upload a CSV; it is validated and can be added to the plan or replace the seeded cohorts.
+- **Cohort.** Shows drivers by domain, the planning estimate, P(≥ 15%), the 90% band, the unknown-state range, and a refusal when history is missing.
+- **Compare.** Sets every action against the current-practice rule on cases, deaths, loss, exposure, and resources.
+- **Optimizer.** Re-solves live as any of twelve yard-limit sliders, the objective, the case cost, or the unknown-field basis changes. It reports which cohorts changed action.
+- **Export.** Writes a text decision summary that says which limits the manager set and flags every veterinary-review cohort.
 
 ## Evaluation
 

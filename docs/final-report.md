@@ -10,6 +10,8 @@ The demo cut takes TX-A from 220 staff hours to 90. Lot 4401 moves from enhanced
 
 After that path, a morbidity-cost control ($151.18 versus a $450 stress value) can flip Lot 4401 to veterinary review, and four objectives share the same optimizer. The risk score is calibrated to Rojas et al. 2022: a 1,733-cohort synthetic population matches its 6.30% mean, 10.85% high-risk share, and AUC midpoint. The unfitted group means (25.3% and 3.99%) sit close to Rojas's 27.1% and 3.77%. Neither extra is on the three-minute path.
 
+The technical brief is `docs/technical_brief.pdf`: three body pages plus a references page, built from the Markdown by `docs/build_brief.py`.
+
 ## Checks
 
 `pytest`: 40 passed. That includes risk math, separate morbidity and metaphylaxis dollars, constraint feasibility, the staff cut, the cost flip, and the storyboard in the app.

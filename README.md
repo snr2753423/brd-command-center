@@ -33,7 +33,7 @@ Every yard's staff, pen, and treatment limit has its own slider on the Optimizer
 - `docs/decision-record.md`, `docs/scope.md`, `docs/expansion.md` — product lock
 - `data/data_dictionary.md` — columns, next to the generator
 - `docs/evidence_registry.md` — published, synthetic, and assumption tags, with sources
-- `docs/technical_brief.md` — method and limits
+- `docs/technical_brief.pdf` — the submitted brief: three pages plus references. Source: `docs/technical_brief.md`. Rebuild it with `pip install markdown` then `python docs/build_brief.py`, which fails if the body runs past three pages.
 - `docs/demonstration_case.md` — the three-minute path
 - `docs/ai_disclosure.md`
 - `docs/final-report.md`
