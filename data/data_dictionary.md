@@ -45,6 +45,8 @@ Shortage capacities are derived by `src/capacities.py` from the same action metr
 |---|---|
 | `upload_bad_rows.csv` | one valid row and rows the upload check must reject |
 | `upload_missing_column.csv` | file-level reject: `head_count` is absent |
+| `calibration_summary.csv` | Rojas et al. 2022 targets beside the calibrated synthetic population, from `calibrate_to_rojas.py` |
+| `calibration_population.csv` | the 1,733 synthetic calibration cohorts with predicted and simulated 45-day morbidity |
 
 ## Rules that read these fields
 

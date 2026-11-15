@@ -87,6 +87,42 @@ def index_chart(recommended: Evaluation, practice: Evaluation) -> go.Figure:
     return _finish(fig, "Recommended plan as an index · current practice = 100")
 
 
+def calibration_chart(fit, context: Context) -> go.Figure:
+    """Synthetic-population morbidity against the 15% line, with this file's cohorts marked."""
+    fig = go.Figure()
+    fig.add_trace(
+        go.Histogram(
+            x=fit.realized * 100,
+            xbins=dict(start=0, end=60, size=1.5),
+            marker_color=GRAY,
+            name="Synthetic cohorts, simulated 45-day morbidity",
+            hovertemplate="%{x}%: %{y} cohorts<extra></extra>",
+        )
+    )
+    xs, labels = [], []
+    for cohort_id in context.ranked_ids:
+        cohort = next(item for item in context.cohorts if item.cohort_id == cohort_id)
+        xs.append(context.scored[cohort_id].planning_morbidity * 100)
+        labels.append(cohort.cohort_name)
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=[0] * len(xs),
+            mode="markers",
+            marker=dict(color=ACCENT, size=11, symbol="triangle-up"),
+            name="This file's cohorts, planning morbidity",
+            text=labels,
+            hovertemplate="%{text}: %{x:.1f}%<extra></extra>",
+        )
+    )
+    fig.add_vline(x=15, line_dash="dot", line_color=INK, annotation_text="15% (Rojas)", annotation_position="top")
+    fig.update_xaxes(title_text="45-day BRD morbidity (%)", range=[0, 60])
+    fig.update_yaxes(title_text="Cohorts")
+    fig = _finish(fig, "Synthetic population calibrated to Rojas et al. 2022")
+    fig.update_layout(height=400, margin=dict(b=110), legend=dict(y=-0.32))
+    return fig
+
+
 def totals_caption(recommended: Evaluation, practice: Evaluation) -> str:
     return (
         f"Recommended {num(recommended.totals.expected_cases)} cases, "

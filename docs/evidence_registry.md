@@ -1,6 +1,6 @@
 # Evidence registry
 
-Every number on the storyboard is one of three tags. Full citations are in `docs/technical_brief.md` under References. Nothing here is a validated accuracy claim, and this app does not report an AUC.
+Every number on the storyboard is tagged published, derived, synthetic, or assumption. Full citations are in `docs/technical_brief.md` under References. Nothing here is a validated accuracy claim. The score is calibrated to Rojas et al. 2022 summary statistics, and that is not a measured accuracy.
 
 | Item | Value | Tag | How it is used |
 |---|---|---|---|
@@ -12,8 +12,12 @@ Every number on the storyboard is one of three tags. Full citations are in `docs
 | Surveillance program cost | $1.50 per head | Assumption | Supplies. Staff time is a capacity constraint, not a second labor bill. |
 | Supportive efficacy | 30% | Assumption | Blocked on the shortage yards by the pen limit. |
 | Supportive program cost | $4.00 per head | Assumption | Ration and support supplies. |
-| Risk coefficients | see `src/assumptions.py` | Assumption | Signs follow published risk-factor direction: lighter arrival weight, more sources, longer haul, unweaned, unvaccinated, ration transition, tighter bunk, fall and winter quarters, weather stress. Magnitudes are not published coefficients. The zero point is an 8% reference profile. |
-| Reference profile | 750 lb, steer, 1 source, 100 miles, known weaned, known vaccinated, adapted ration, 12 in bunk, Q2, no weather stress | Assumption | The intercept. Leaving an unknown field out of the score equals giving it this profile's value, so cohorts with unknowns are planned on the worst case of their unknown-state range instead. |
+| Risk coefficients | see `src/assumptions.py` | Assumption | Signs follow published risk-factor direction: lighter arrival weight, more sources, longer haul, unweaned, unvaccinated, ration transition, tighter bunk, fall and winter quarters, weather stress. Relative sizes are assumptions, not published coefficients. One calibrated multiplier (2.08) scales all of them so the score separates high- from low-risk cohorts at AUC 0.735, the midpoint of Rojas's 0.682–0.789. |
+| Reference profile | 750 lb, steer, 1 source, 100 miles, known weaned, known vaccinated, adapted ration, 12 in bunk, Q2, no weather stress; 1.09% morbidity | Assumption profile; derived rate | The intercept, calibrated so a 1,733-cohort synthetic population averages Rojas's 6.30%. Leaving an unknown field out of the score equals giving it this profile's value, so cohorts with unknowns are planned on the worst case of their unknown-state range instead. |
+| Unexplained spread | logit SD 1.12 | Derived | Calibrated so 10.85% of the synthetic population lands at or above 15%, as in Rojas. Drives P(morbidity ≥ 15%) and the 90% band. |
+| Calibration checks | high-risk mean 25.3% (Rojas 27.1%); low-risk mean 3.99% (Rojas 3.77%) | Derived | Not fitted. `data/calibration_summary.csv`, `data/calibrate_to_rojas.py`. |
+| Calibration population field mix | see `src/calibration.py` `FIELD_MIX` | Assumption | Rojas does not publish field distributions. |
+| Cost stress value | $450 per case | Assumption | Not a published cost. Above the roughly $413 break-even at which veterinary review overtakes surveillance for Lot 4401. |
 | Unknown-state bounds | 50 and 800 miles; 6 and 18 inches of bunk | Assumption | Shown as a range when a field is unknown. Not written back onto the row. |
 | All-cause death rate | 2.3% placed under 700 lb; 1.2% at 700 lb or more | Published | USDA APHIS NAHMS, *Antimicrobial Use and Stewardship on U.S. Feedlots, 2017* (2019), table A.6, cattle placed in 2016. |
 | BRD share of feedlot deaths | 50–80%; midpoint 65% used | Published range, midpoint assumption | Weber et al. 2024 poster, citing Edwards 1996 and Kelly and Janzen 1986. |

@@ -348,6 +348,15 @@ def point_drivers(
         )
     )
     total += weather_effect
+    # One calibrated multiplier on every driver (see src/calibration.py). Signs are unchanged.
+    scale = assumptions.risk_scale
+    if scale != 1.0:
+        drivers = [
+            replace(driver, contribution=None if driver.contribution is None else driver.contribution * scale)
+            for driver in drivers
+        ]
+        base = logit(assumptions.reference_morbidity)
+        total = base + scale * (total - base)
     return drivers, total
 
 

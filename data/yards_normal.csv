@@ -1,5 +1,5 @@
 yard_id,yard_name,region,weather_stress_flag,pen_capacity_sqft,staff_hours,demo_staff_hours,treatment_slots,bottleneck
-TX-A,Panhandle North,Texas Panhandle,false,135000.0000,405.0000,405.0000,85.5598,relaxed
-TX-B,Panhandle South,Texas Panhandle,false,97500.0000,292.5000,292.5000,80.9219,relaxed
-KS-A,High Plains West,western Kansas,true,93750.0000,281.2500,281.2500,34.6403,relaxed
-KS-B,High Plains East,western Kansas,false,116250.0000,348.7500,348.7500,55.3334,relaxed
+TX-A,Panhandle North,Texas Panhandle,false,135000.0000,405.0000,405.0000,49.2709,relaxed
+TX-B,Panhandle South,Texas Panhandle,false,97500.0000,292.5000,292.5000,61.3685,relaxed
+KS-A,High Plains West,western Kansas,true,93750.0000,281.2500,281.2500,8.1966,relaxed
+KS-B,High Plains East,western Kansas,false,116250.0000,348.7500,348.7500,17.9592,relaxed

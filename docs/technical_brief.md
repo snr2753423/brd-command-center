@@ -2,73 +2,68 @@
 
 ## Decision problem
 
-A feedlot manager has to place each arrival cohort on one action for the next 45 days when staff hours, pen space, and treatment throughput are already tight. The user is that manager, across four synthetic yards in the Texas Panhandle and western Kansas. The decision unit is the arrival cohort, not the individual animal. The product compares options. It does not classify cattle, and it does not prescribe. Any action that contemplates metaphylaxis is labeled veterinary review and stays with a veterinarian.
+A feedlot manager has to place each arrival cohort on one action for the first 45 days, while staff hours, pen space, and treatment throughput are already tight. The user is that manager, across four synthetic yards in the Texas Panhandle and western Kansas. The decision unit is the arrival cohort, as in Rojas et al. 2022, because arrival decisions are made for groups. The tool compares four actions: standard care, enhanced surveillance, supportive management, and veterinary review. It does not prescribe. Veterinary review flags a cohort for a veterinarian to consider metaphylaxis.
 
-The arrival record covers four domains. Animal: head count, sex, arrival weight. Management: source count, travel distance, weaning, and vaccination, each known or unknown. Nutrition: ration-transition status and bunk space per head. Environment: arrival quarter, plus a yard-level weather-stress flag. That flag is a stored field. There is no weather API.
+The arrival record covers four domains. Animal: head count, sex, arrival weight, and head already clinically ill. Management: source count, travel distance, weaning, and vaccination, each known or unknown. Nutrition: ration-transition status and bunk space per head. Environment: arrival quarter and a yard-level weather-stress flag. The flag is a stored field. There is no weather API.
 
-## Provenance
+## Data and provenance
 
-Every figure in the demo carries one of three tags.
+Every figure carries one of four tags.
 
-- **Published.** From Rojas et al. 2022: the 15% first-treatment morbidity cutoff, and from its Table 3 the $151.18 cost of a morbid animal, the $23.60 metaphylaxis cost per animal, and 50% metaphylaxis efficacy.
-- **Synthetic.** The eight cohorts, four yards, capacities, and weather-stress flags written by `data/generate_demo_data.py`.
-- **Assumption.** Risk coefficients, the non-metaphylaxis effect sizes, program costs, and exposure units.
+- **Published.** From Rojas et al. 2022: the 15% high-risk cutoff for 45-day BRD morbidity, the mean morbidity (6.30%), the high-risk share (10.85%), and the AUC range (0.682–0.789) of its models. From its Table 3: $151.18 cost of a morbid animal, $23.60 metaphylaxis cost per animal, and 50% metaphylaxis efficacy. From USDA (2019): death rates of 2.3% for cattle placed under 700 lb and 1.2% for heavier cattle.
+- **Derived.** BRD deaths per case, and the calibrated intercept, spread, and coefficient scale of the risk score.
+- **Synthetic.** The eight demo cohorts, four yards, capacities, and weather-stress flags (`data/generate_demo_data.py`). The 1,733-cohort calibration population (`data/calibrate_to_rojas.py`).
+- **Assumption.** Coefficient directions and relative sizes, the non-metaphylaxis effect sizes, program costs, staff and pen rates, exposure units, and the calibration population's field mix.
 
-The generator, the CSVs, and `data/data_dictionary.md` are in the same folder. Unknown cells stay unknown. Travel, weaning, or vaccination left unknown withholds a confident call. A missing head count or arrival weight rejects the row, because those fields define the cohort. The score never writes the reference profile back into a blank cell.
+No dataset was provided, and Rojas cattle-level records are not public. All rows are synthetic and shareable. Unknown cells stay unknown. A missing head count or arrival weight rejects the row, because those fields define the cohort. A missing haul, weaning, or vaccination status withholds a confident call.
 
-## Evidence
+## Evidence and calibration
 
-The only published number used as a threshold is 15% first-treatment morbidity (Rojas et al. 2022). A cohort whose known-fields point estimate is at or above that line is model-high-risk. That flag is not the probability P(morbidity ≥ 15%), and it is not the yard's current-practice rule. Rojas cattle-level records are not in this app. This app does not report an AUC, and it does not claim the Rojas model's accuracy as its own.
+Published risk-factor directions decide which fields enter the score (Adekunle et al. 2026; Adekunle and Kaniyamattam 2026; Rojas et al. 2022; USDA 2019): lighter weight, more sources, a longer haul, unweaned or unvaccinated cattle, a ration still in transition, tight bunk space, colder quarters, and weather stress all raise risk. The score is a logistic model of these fields around a low-risk reference profile (750 lb steers, one source, 100 miles, weaned, vaccinated, adapted ration, 12 in bunk, Q2).
 
-Directional findings in the feedlot BRD literature (Adekunle et al. 2026; Adekunle and Kaniyamattam 2026; Rojas et al. 2022; USDA 2019) motivate which fields enter the score: lighter arrival weight, more sources, a longer haul, lack of weaning or vaccination, a ration still in transition, tighter bunk space, and a colder arrival quarter. Those directions are the published part. The log-odds weights are assumptions. The yard weather-stress flag is synthetic, and its coefficient is an assumption.
+The relative weights are assumptions. Their overall level was calibrated to Rojas. `src/calibration.py` builds 1,733 fully recorded synthetic cohorts (mean size 109) with an assumed field mix. It simulates each cohort's 45-day morbidity head by head, then fits three values to three published targets:
 
-## Assumptions
+- **Intercept**, matched to the 6.30% mean. Fitted value: a 1.09% reference profile.
+- **Unexplained spread**, matched to the 10.85% high-risk share. Fitted value: logit SD 1.12.
+- **Coefficient scale**, matched so the score separates high- from low-risk cohorts at AUC 0.735, the midpoint of Rojas's range. Fitted value: 2.08.
 
-The score is a logistic curve around an 8% reference profile (750 lb, steer, one source, 100 miles, known weaned, known vaccinated, adapted ration, 12 inches of bunk, second quarter, no weather stress). Leaving an unknown field out of that sum is the same as giving it the reference value. So a cohort with unknowns is planned on the worst case across its unknown states (50 or 800 miles; weaned or not; vaccinated or not), and the manager can switch to the midpoint or the reference profile. Lot 4388 would score 16.4% with its unknowns left out. It is planned at 27.1%.
+The two group means are not fitted, so they serve as the check. High-risk cohorts average 25.3% (Rojas 27.1%) and low-risk cohorts 3.99% (Rojas 3.77%). This is calibration to published summaries, not validation. Matching Rojas's AUC is an assumption about how informative arrival fields are, not an accuracy measured here. The unexplained spread feeds P(morbidity ≥ 15%), so each cohort shows both a planning estimate and the probability it lands above the line.
 
-Expected cases equal cattle already clinically ill, plus the remaining head times the planning morbidity times one minus efficacy. Efficacy does not remove cattle that are already sick. Operating loss equals morbidity cost plus program cost, and those dollars are not mixed:
+## Missing information
 
-- Morbidity cost is $151.18 per expected case (published, Rojas 2022 Table 3).
-- Metaphylaxis, and only on veterinary review, is $23.60 per head that is not already clinically ill (published, Rojas 2022 Table 3).
-- Metaphylaxis efficacy is 50% on those at-risk head (published, Rojas 2022 Table 3, citing Avra et al. 2017). It is a modeling input, not a result measured in this demo.
-- Enhanced surveillance is an 18% efficacy assumption and $1.50 per head. Supportive management is a 30% efficacy assumption and $4.00 per head.
-- Antimicrobial exposure is a synthetic unit: one per expected case, plus one per metaphylaxis head. It is not a dollar.
-- Expected BRD deaths are cases times deaths per case: 17.2% under 700 lb and 9.0% at or above. These are derived from the USDA 2019 death rates (2.3% and 1.2%), BRD's 50–80% share of feedlot deaths (Weber et al. 2024), the 65–80% of cases in the first 45 days (Adekunle and Kaniyamattam 2026), and Rojas's 6.3% mean 45-day morbidity. Deaths follow cases and are not priced, because $151.18 already covers a sick animal's lost value.
+Leaving an unknown field out of a logistic sum is the same as giving it the reference value. The tool therefore does not plan on that figure. A cohort with unknowns is planned on the worst case across its unknown states (haul 50 or 800 miles; weaned or not; vaccinated or not). A sidebar control switches to the midpoint, or to the reference profile, which is labeled as filling in unknowns. Lot 4388 would score 5.6% with its unknowns left out. It is planned at 18.6%, and the app refuses a confident call.
 
-Staff time is a capacity constraint, not a second labor bill. Rates are assumptions: 0.25, 0.40, 0.55, and 0.90 hours per head for standard care, supportive management, veterinary review, and enhanced surveillance. Pen is an assumption of 250 square feet per head, or 1.25 times that for supportive management. The resource window is the arrival week. That window is an assumption. The morbidity figure remains a 45-day estimate.
+## Consequences and assumptions
 
-Current practice is a named rule, separate from the model. Veterinary review when arrival weight is under 600 lb and source count is at least 2. Every other cohort stays on standard care. The 600 lb and two-source cutoffs are the operating rule, tagged assumption.
+- **Expected cases** are the head already ill, plus the remaining head times planning morbidity times one minus efficacy.
+- **Operating loss** is $151.18 per expected case plus the action's own program cost. Metaphylaxis ($23.60 per at-risk head) applies only on veterinary review. Surveillance costs $1.50 per head and supportive management $4.00 per head; their efficacies (18% and 30%) are assumptions.
+- **BRD deaths** are cases times deaths per case. Deaths per case are 17.2% for cattle under 700 lb and 9.0% for heavier cattle. They are derived from the USDA death rates, BRD's 50–80% share of feedlot deaths (Weber et al. 2024), the 65–80% of cases that occur in the first 45 days (Adekunle and Kaniyamattam 2026), and the 6.3% mean morbidity. Deaths are reported, not priced, because $151.18 already covers a sick animal's lost value.
+- **Antimicrobial exposure** is a synthetic unit: one per case plus one per metaphylaxis head.
+
+Staff hours (0.25, 0.40, 0.55, and 0.90 h per head) and pen (250 sq ft per head; 1.25× for supportive management) are hard per-yard limits in an integer program (PuLP/CBC). Treatment throughput is a third limit. Standard-care monitoring and treatment of already-ill cattle are welfare floors the solver cannot cut. The objective is operating loss, modeled morbidity, antimicrobial exposure, or expected deaths. Current practice is a named rule: veterinary review when a cohort is under 600 lb and from at least two sources, and standard care otherwise.
 
 ## Evaluation
 
-Evaluation here is a check that the arithmetic and the solver do what they say. It is not a test of predictive accuracy. `pytest` reports 37 passed, covering:
+`pytest` reports 40 passed. The tests check the risk math, worst-case planning, cost accounting (no dollar counted twice), deaths following cases, all three hard limits and both welfare floors, the shortage diagnosis, the staff cut, the cost flip, uploads entering the plan, and that the stored calibration still hits the Rojas targets. These tests check that the arithmetic and the solver do what they claim. They do not test predictive accuracy on real cattle.
 
-- Risk math. A lighter weight raises the estimate. A missing haul is stored as unknown, not as 100 miles. Morbidity and P(above 15%) are different numbers. Lot 4388, missing travel, weaning, and vaccination, gets no confident call.
-- Cost accounting. For veterinary review, program cost is at-risk head times $23.60, morbidity cost is expected cases times $151.18, and operating loss is the sum of those two. Changing one constant does not change the other.
-- Constraint feasibility. A solved plan stays inside staff, pen, and treatment on every yard. One hour under the standard-care floor is infeasible. Cattle already clinically ill are not dropped. The seeded staff cut changes Lot 4401's action and the yard totals.
+## Trade-offs (demonstration case)
 
-No model was trained on these synthetic labels. No accuracy, sensitivity, or AUC is reported.
+Lot 4401 (200 head, 540 lb, four sources, 520 miles, unweaned, unvaccinated) plans at 16.7%, with P(≥ 15%) of 55%. Current practice sends it to veterinary review: 20.4 cases, 3.5 deaths, $7,703, and 216 exposure units. The solver picks enhanced surveillance: 30.8 cases, 5.3 deaths, $4,960, and 31 exposure units. That choice trades about ten more cases and two more deaths for $2,700 less operating loss and 85% less antimicrobial exposure. Minimizing morbidity or deaths instead selects veterinary review. Supportive management would lose less money still, but the shortage pens are full.
 
-## Trade-offs
-
-On the shortage file, pen is full, so supportive management does not fit even though, for Lot 4401, its assumed operating loss is lower than surveillance. Staff is full. TX-A has 220 hours, exactly enough for enhanced surveillance on Lot 4401 (180 hours) and standard care on the other TX-A lot. That is the operating-loss choice at the published constants: about 45.7 expected cases, about $7,206, and about 45.7 exposure units for that lot. The named baseline, veterinary review, has fewer cases (about 29.4) but a higher operating loss (about $9,073) and much higher exposure (about 225 units), and it requires a veterinarian. Applied to the whole file, that rule is already infeasible: TX-B would need 101 staff hours and has 65.
-
-Cutting TX-A staff to 90 hours, the standard-care floor, removes surveillance. The feasible recommendation for Lot 4401 becomes standard care. Yard totals move from about 196.0 cases, 30.3 BRD deaths, $29,933, and 196.0 exposure units to about 205.2 cases, 31.9 deaths, $31,017, and 205.2 exposure units. Health is worse, operating loss is higher, and antimicrobial exposure rises because more cases mean more therapeutic exposure. The plan does not add metaphylaxis to make up the difference. Pen and treatment stay inside their caps. One hour under 90 is refused.
-
-A separate control can set the case-loss constant to $400. That value is an assumption, not a published cost. At $400, operating loss can select veterinary review for Lot 4401. Minimizing modeled morbidity or expected deaths selects veterinary review at $151.18. Minimizing exposure does not. All three objectives use the same constraints. The veterinary-review flag still means a veterinarian decides.
+Applied to the whole file, the current-practice rule does not fit: TX-B would need 101 staff hours and has 65. Cutting TX-A staff from 220 to 90 hours moves Lot 4401 to standard care. Yard totals then move from 103.5 to 109.4 cases, from 17.1 to 18.1 BRD deaths, and from $15,954 to $16,545. Below 90 hours the plan is refused, and the error names the yard and limit that is short. At a $450 case cost (a stress value, not published), operating loss also selects veterinary review.
 
 ## Limitations
 
-The cohorts, capacities, and weather-stress flags are synthetic. They are not a validation set, and they are not a claim about any real yard. Effect sizes and dollar constants are assumptions. The 15% line is a published benchmark only. This app does not claim Rojas AUC, or any AUC, as its accuracy. It does not see individual animals, does not call a weather service, and does not store records. It will not withhold care from cattle that are already clinically ill, and it will not turn veterinary review into a prescription.
+The cohorts, capacities, and calibration population are synthetic. They are not records from any yard and not a validation set. The coefficient pattern, the non-metaphylaxis effects, and the calibration population's field mix are assumptions. The deaths per case are derived and likely conservative for light, high-risk cattle. The tool works at cohort level, has no individual-animal or day-by-day reassessment, and uses no live weather. It never withholds treatment from cattle already ill, and it never turns veterinary review into a prescription.
 
 ## References
 
 This section is outside the three-page body.
 
-- Rojas, H.A.; White, B.J.; Amrine, D.E.; Larson, R.L. Predicting Bovine Respiratory Disease Risk in Feedlot Cattle in the First 45 Days Post Arrival. *Pathogens* 2022, 11, 442. https://doi.org/10.3390/pathogens11040442. Used for the 15% cutoff and Table 3 constants. Cattle-level records are not used, and its AUC (0.68 to 0.79) is not claimed here.
+- Rojas, H.A.; White, B.J.; Amrine, D.E.; Larson, R.L. Predicting Bovine Respiratory Disease Risk in Feedlot Cattle in the First 45 Days Post Arrival. *Pathogens* 2022, 11, 442. https://doi.org/10.3390/pathogens11040442. The 15% cutoff, the summary statistics used for calibration, and the Table 3 constants. Cattle-level records are not used.
 - Avra, T.D.; Abell, K.M.; Shane, D.D.; Theurer, M.E.; Larson, R.L.; White, B.J. A Retrospective Analysis of Risk Factors Associated with Bovine Respiratory Disease Treatment Failure in Feedlot Cattle. *J. Anim. Sci.* 2017, 95, 1521–1527. Cited by Rojas for 50% metaphylaxis efficacy.
 - Adekunle, A.; Gaines, A.; Estefano, N.; Lenin, D.; Hole, P.; Khandelwal, R.; Cooke, R.; Kaniyamattam, K. Mapping Variability in Bovine Respiratory Disease Risk Factors in Beef Production Systems: A Scoping Review. *Animals* 2026, 16, 1726. https://doi.org/10.3390/ani16111726. Risk-factor directions.
 - Adekunle, A.; Kaniyamattam, K. Bovine Respiratory Disease: Epidemiological Drivers, Transmission Dynamics, and Economic Implications in Beef Production Systems. *Agriculture* 2026, 16, 311. https://doi.org/10.3390/agriculture16030311. Risk-factor directions and the timing of BRD cases.
 - Johnson, K.K.; Pendell, D.L. Market Impacts of Reducing the Prevalence of Bovine Respiratory Disease in United States Beef Cattle Feedlots. *Front. Vet. Sci.* 2017, 4, 189. https://doi.org/10.3389/fvets.2017.00189. Context for the $23.60 NAHMS treatment cost.
-- Weber, K.M.D.; Schroeder, T.C.; Renter, D.G.; Pendell, D.L.; Tonsor, G.T. Evaluation of Bovine Respiratory Disease Morbidity in the Feedlot and its Effect on Net Return Distributions. AAEA Annual Meeting poster, 2024. Context for weight-dependent losses.
-- USDA APHIS. *Antimicrobial Use and Stewardship on U.S. Feedlots, 2017.* NAHMS, May 2019. Risk factors feedlots use to decide group treatment.
+- Weber, K.M.D.; Schroeder, T.C.; Renter, D.G.; Pendell, D.L.; Tonsor, G.T. Evaluation of Bovine Respiratory Disease Morbidity in the Feedlot and its Effect on Net Return Distributions. AAEA Annual Meeting poster, 2024. BRD share of feedlot deaths.
+- USDA APHIS. *Antimicrobial Use and Stewardship on U.S. Feedlots, 2017.* NAHMS, May 2019. Death rates by placement weight; risk factors feedlots use for group treatment.

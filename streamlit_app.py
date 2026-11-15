@@ -9,7 +9,8 @@ import pandas as pd
 import streamlit as st
 
 from src.assumptions import UNKNOWN_PLANNING_LABEL, Assumptions, case_fatality
-from src.charts import burden_chart, compare_chart, index_chart, totals_caption
+from src.calibration import ROJAS, committed_fit, summary_rows
+from src.charts import burden_chart, calibration_chart, compare_chart, index_chart, totals_caption
 from src.data_loader import load_demo
 from src.economics import compare_to_practice
 from src.format import money, num, pct
@@ -169,6 +170,29 @@ def _tag(text: str) -> None:
     st.caption(text)
 
 
+@st.cache_resource(show_spinner=False)
+def _calibration():
+    return committed_fit(Assumptions())
+
+
+def _calibration_panel(context: Context) -> None:
+    with st.expander("Calibration against Rojas et al. 2022", expanded=False):
+        st.caption(
+            f"A synthetic population of {ROJAS['cohorts']:,} fully recorded cohorts (assumed field mix) is scored "
+            "and its 45-day morbidity simulated head by head. The intercept, the unexplained spread, and one "
+            "coefficient scale are fitted to Rojas's mean, high-risk share, and AUC midpoint. The high- and "
+            "low-risk means are a check, not a fit. This is calibration to published summaries, not validation."
+        )
+        fit = _calibration()
+        st.dataframe(pd.DataFrame(summary_rows(fit)), hide_index=True, width="stretch")
+        st.plotly_chart(
+            calibration_chart(fit, context),
+            width="stretch",
+            config={"displayModeBar": False},
+            alt="Histogram of synthetic-population 45-day morbidity with the demo cohorts and the 15% line marked.",
+        )
+
+
 def page_overview(context: Context, result, practice) -> None:
     st.subheader("Four yards")
     _tag("Capacities are synthetic. A meter at cap is a hard limit, not a target to exceed.")
@@ -254,6 +278,8 @@ def page_overview(context: Context, result, practice) -> None:
         st.warning("Current practice is not feasible under these limits. " + " ".join(practice.violations))
     elif result.feasible:
         st.success("Current practice fits these limits, and a feasible allocation is ready on the Optimizer screen.")
+
+    _calibration_panel(context)
 
     st.subheader("Upload cohorts")
     _tag(
@@ -673,12 +699,12 @@ def page_optimizer(context: Context, result, practice, scenario: str, seeded) ->
         st.number_input(
             "Morbidity cost per case ($)",
             min_value=80.0,
-            max_value=400.0,
+            max_value=600.0,
             step=0.01,
             key="morbidity_cost",
             format="%.2f",
         )
-        _tag("Published $151.18 (Rojas 2022 Table 3). The $400 stress value is an assumption, not a published cost.")
+        _tag("Published $151.18 (Rojas 2022 Table 3). The $450 stress value is an assumption, not a published cost.")
         one, two = st.columns(2)
         with one:
             st.button(
@@ -689,14 +715,14 @@ def page_optimizer(context: Context, result, practice, scenario: str, seeded) ->
             )
         with two:
             st.button(
-                "Stress cost at $400",
+                "Stress cost at $450",
                 key="cost_stress",
                 on_click=_set_cost,
                 args=(Assumptions().flip_morbidity_cost_per_case,),
             )
         st.caption(
             "At the published constant, Lot 4401 stays on enhanced surveillance when TX-A has its seeded hours. "
-            "At $400 per case, the same solve can select veterinary review. That action still requires a veterinarian."
+            "At $450 per case, the same solve can select veterinary review. That action still requires a veterinarian."
         )
 
 

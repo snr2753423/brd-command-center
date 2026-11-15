@@ -8,9 +8,10 @@ from src.schema import INCOMPLETE_COHORT_ID, PRIORITY_COHORT_ID
 from tests.conftest import reference_cohort
 
 
-def test_reference_profile_is_eight_percent():
-    scored = score_cohort(reference_cohort(), weather_stress=False, assumptions=Assumptions())
-    assert scored.morbidity == pytest_approx(0.08)
+def test_reference_profile_is_the_calibrated_intercept():
+    assumptions = Assumptions()
+    scored = score_cohort(reference_cohort(), weather_stress=False, assumptions=assumptions)
+    assert scored.morbidity == pytest_approx(assumptions.reference_morbidity)
     assert scored.confident_call
     assert scored.confidence.level == "confident"
     assert scored.p_high_risk != pytest_approx(scored.morbidity)

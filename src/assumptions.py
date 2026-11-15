@@ -57,8 +57,10 @@ class Assumptions:
     multiple_source_min: int = 2
 
     # Log-odds deviations from the reference profile. Magnitudes are assumptions.
-    # The zero point is an 8% reference profile, not a filled-in value for missing data.
-    reference_morbidity: float = 0.08
+    # Reference-profile morbidity (the intercept). Calibrated so a synthetic population of
+    # 1,733 cohorts averages Rojas et al. 2022's 6.30% (see src/calibration.py,
+    # data/calibrate_to_rojas.py). The reference profile is a low-risk arrival.
+    reference_morbidity: float = 0.01092
     weight_reference_lb: float = 750.0
     weight_log_odds_per_lb: float = -0.0016
     sex_log_odds: tuple[tuple[str, float], ...] = (
@@ -81,9 +83,14 @@ class Assumptions:
         ("Q4", 0.14),
     )
     weather_log_odds: float = 0.12
+    # Multiplier on every coefficient above. Calibrated so the score separates high- from
+    # low-risk cohorts at AUC 0.735, the midpoint of Rojas's published 0.682-0.789.
+    risk_scale: float = 2.0807
 
-    # Wider uncertainty when a field is unknown. Not a substitute value.
-    sigma_base: float = 0.30
+    # Unexplained cohort-to-cohort spread on the logit scale. Calibrated so 10.85% of the
+    # synthetic population lands at or above 15%, as in Rojas et al. 2022. Used for
+    # P(morbidity >= 15%) and the 90% band. Unknown fields widen it further.
+    sigma_base: float = 1.1159
     sigma_missing: tuple[tuple[str, float], ...] = (
         ("travel_distance_mi", 0.35),
         ("weaning_status", 0.28),
@@ -120,7 +127,7 @@ class Assumptions:
 
     # Preset pair for the assumption control. Default, then a stress value that
     # can flip the selected action. The stress value is not a published cost.
-    flip_morbidity_cost_per_case: float = 400.0
+    flip_morbidity_cost_per_case: float = 450.0
 
     def staff_rate(self, action_id: str) -> float:
         return dict(self.staff_hours_per_head)[action_id]

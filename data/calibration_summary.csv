@@ -1,0 +1,6 @@
+Statistic,Rojas et al. 2022,Synthetic population,Role
+Mean 45-day morbidity,6.30%,6.30%,fitted (intercept)
+Cohorts at or above 15%,10.85%,10.85%,fitted (spread)
+"Mean morbidity, high-risk cohorts",27.07%,25.28%,"check, not fitted"
+"Mean morbidity, low-risk cohorts",3.77%,3.99%,"check, not fitted"
+Score separation (AUC),0.682-0.789,0.735,fitted (coefficient scale) to the midpoint; assumption
