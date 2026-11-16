@@ -68,6 +68,7 @@ docs/
   technical_brief.pdf   Three-page brief plus references
   demonstration_case.md One end-to-end decision for Lot 4401
   evidence_registry.md  Source for every number
+  sme_briefing.md       SME pack to stress-test assumptions and the practice rule
   ai_disclosure.md      AI tools and external resources
 tests/                  pytest suite (risk, costs, optimizer, calibration, app)
 ```
