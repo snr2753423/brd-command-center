@@ -45,7 +45,7 @@ python data/calibrate_to_rojas.py
 pip install markdown && python docs/build_brief.py
 ```
 
-**Demo path:** the app opens on the shortage scenario. On **Optimizer**, click **Apply demo staff cut**. Lot 4401 moves from enhanced surveillance to standard care, and the totals update. On **Cohort**, open Lot 4388: it is missing history, so the app refuses a confident call. **Export** downloads the decision summary.
+**Demo path (~3 min):** the app opens on **Shortage**. On **Overview**, open Lot 4401 (ranked first; burden bars highlight it). On **Cohort**, show the 16.7% planning figure and uncertainty band vs the 15% line. On **Compare**, open current practice vs alternatives (cases and Δ charts). On **Optimizer**, click **Apply demo staff cut**: TX-A staff 220→90, Lot 4401 moves from enhanced surveillance to standard care, and yard totals update (103.5→109.4 cases). Open the incomplete record (Lot 4388): missing travel/weaning/vaccination, so the app refuses a confident call and plans worst-case 18.6%. **Export** downloads the labeled synthetic decision summary. Leave **Extras** and CSV upload off this path unless asked.
 
 ## Repo roadmap
 
