@@ -47,6 +47,8 @@ pip install markdown && python docs/build_brief.py
 
 **Demo path (~3 min):** the app opens on **Shortage**. On **Overview**, open Lot 4401 (ranked first; burden bars highlight it). On **Cohort**, show the 16.7% planning figure and uncertainty band vs the 15% line. On **Compare**, open current practice vs alternatives (cases and Δ charts). On **Optimizer**, click **Apply demo staff cut**: TX-A staff 220→90, Lot 4401 moves from enhanced surveillance to standard care, and yard totals update (103.5→109.4 cases). Open the incomplete record (Lot 4388): missing travel/weaning/vaccination, so the app refuses a confident call and plans worst-case 18.6%. **Export** downloads the labeled synthetic decision summary. Leave **Extras** and CSV upload off this path unless asked.
 
+Optional shareable demo: see [hosting notes](docs/hosting.md) (local Streamlit default; Streamlit Community Cloud entrypoint `streamlit_app.py` if you want a free public link). No auth, no paid infra, no required secrets.
+
 ## Repo roadmap
 
 ```text
@@ -69,6 +71,7 @@ docs/
   demonstration_case.md One end-to-end decision for Lot 4401
   evidence_registry.md  Source for every number
   sme_briefing.md       SME pack to stress-test assumptions and the practice rule
+  hosting.md            Optional local / Community Cloud notes (no paid infra)
   ai_disclosure.md      AI tools and external resources
 tests/                  pytest suite (risk, costs, optimizer, calibration, app)
 ```
