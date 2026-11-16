@@ -14,7 +14,7 @@ The technical brief is `docs/technical_brief.pdf`: three body pages plus a refer
 
 ## Checks
 
-`pytest`: 42 passed. That includes risk math, separate morbidity and metaphylaxis dollars, constraint feasibility, the staff cut, the cost flip, CSV upload dry-run accept/reject, and the storyboard in the app.
+`pytest`: 44 passed. That includes risk math, separate morbidity and metaphylaxis dollars, constraint feasibility, the staff cut, the cost flip, CSV upload dry-run accept/reject, the storyboard in the app, and ASGI `/` `/summary` `/health` `/ready` coverage.
 
 Launch, from the repository root:
 
