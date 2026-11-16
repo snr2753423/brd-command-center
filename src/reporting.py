@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .assumptions import UNKNOWN_PLANNING_LABEL, Assumptions, case_fatality
-from .format import money, num, pct
+from .format import field_labels, money, num, pct
 from .optimizer import Evaluation
 from .pipeline import Context
 from .practice import action_label, rule_text
@@ -73,8 +73,10 @@ def decision_summary(
             if scored.confident_call:
                 call = f"confidence {scored.confidence.level}"
             else:
-                missing = ", ".join(scored.confidence.critical_missing)
-                call = f"No confident recommendation. Missing: {missing}"
+                call = (
+                    "No confident recommendation. Missing: "
+                    f"{field_labels(scored.confidence.critical_missing)}"
+                )
             vet = "yes" if metric.veterinary_review_required else "no"
             lines.append(
                 f"- {cohort.cohort_id} {cohort.cohort_name} | {action_label(metric.action_id)} | "

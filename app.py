@@ -10,7 +10,7 @@ from starlette.responses import HTMLResponse, PlainTextResponse
 from starlette.routing import Route
 
 from src.data_loader import load_demo
-from src.format import money, num, pct
+from src.format import field_labels, money, num, pct
 from src.optimizer import evaluate_assignment, solve
 from src.pipeline import Context, build_context
 from src.practice import action_label
@@ -94,9 +94,8 @@ def _withheld_line(context: Context) -> str:
             "Records are complete enough to compare actions. "
             "This is still an assumption-based estimate, not a validated prediction."
         )
-    missing = ", ".join(scored.confidence.critical_missing)
     return (
-        f"No confident recommendation. Missing {missing}. "
+        f"No confident recommendation. Missing {field_labels(scored.confidence.critical_missing)}. "
         "Those fields were not filled with a typical value. "
         "Any known-fields figure is only a planning input."
     )
