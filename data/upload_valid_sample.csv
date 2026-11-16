@@ -1,0 +1,5 @@
+cohort_id,yard_id,cohort_name,head_count,sex,arrival_weight_lb,source_count,travel_distance_mi,weaning_status,vaccination_status,ration_transition_status,bunk_space_in_per_head,arrival_quarter,clinically_ill_head
+SAMPLE-TXA-1,TX-A,Sample Panhandle North A,90,steer,680,2,210,known_weaned,known_vaccinated,adapted,12,Q3,1
+SAMPLE-TXB-1,TX-B,Sample Panhandle South A,75,heifer,520,3,640,known_unweaned,known_unvaccinated,transitioning,9,Q4,2
+SAMPLE-KSA-1,KS-A,Sample High Plains West A,110,mixed,710,1,,unknown,,adapted,,Q2,0
+SAMPLE-KSB-1,KS-B,Sample High Plains East A,95,steer,790,1,85,known_weaned,known_vaccinated,adapted,14,Q1,0

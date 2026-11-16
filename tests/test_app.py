@@ -48,6 +48,17 @@ def test_storyboard_staff_cut_and_withheld_call():
     assert len(app.download_button) == 1
 
 
+def test_valid_sample_csv_is_accepted_in_the_app():
+    app = _app()
+    payload = (ROOT / "data" / "upload_valid_sample.csv").read_bytes()
+    app.file_uploader[0].upload("upload_valid_sample.csv", payload, "text/csv").run()
+    assert not app.exception
+    assert any("4 row(s) accepted" in item.value for item in app.success)
+    tables = "\n".join(frame.value.astype(str).to_string() for frame in app.dataframe)
+    assert "SAMPLE-TXA-1" in tables
+    assert "SAMPLE-KSA-1" in tables
+
+
 def test_bad_csv_is_rejected_in_the_app():
     app = _app()
     payload = (ROOT / "data" / "upload_bad_rows.csv").read_bytes()

@@ -15,6 +15,25 @@ def _read(name: str) -> pd.DataFrame:
     return pd.read_csv(DATA / name, dtype=str, keep_default_na=False)
 
 
+def test_valid_sample_is_fully_accepted():
+    result = validate_cohort_frame(_read("upload_valid_sample.csv"), YARDS)
+    assert result.file_errors == ()
+    assert result.issues == ()
+    accepted = {cohort.cohort_id: cohort for cohort in result.accepted}
+    assert set(accepted) == {
+        "SAMPLE-TXA-1",
+        "SAMPLE-TXB-1",
+        "SAMPLE-KSA-1",
+        "SAMPLE-KSB-1",
+    }
+    assert set(cohort.yard_id for cohort in result.accepted) == YARDS
+    incomplete = accepted["SAMPLE-KSA-1"]
+    assert incomplete.travel_distance_mi is None
+    assert incomplete.weaning_status == "unknown"
+    assert incomplete.vaccination_status == "unknown"
+    assert incomplete.bunk_space_in_per_head is None
+
+
 def test_bad_rows_are_rejected_and_one_good_row_remains():
     result = validate_cohort_frame(_read("upload_bad_rows.csv"), YARDS)
     assert not result.file_errors
@@ -98,5 +117,6 @@ def test_generator_matches_committed_files(tmp_path: Path):
         "yards_normal.csv",
         "upload_bad_rows.csv",
         "upload_missing_column.csv",
+        "upload_valid_sample.csv",
     ):
         assert (tmp_path / name).read_text() == (DATA / name).read_text()

@@ -257,6 +257,83 @@ def _missing_column_rows() -> tuple[list[str], list[dict[str, str]]]:
     return fields, [row]
 
 
+def _valid_sample_rows() -> list[dict[str, str]]:
+    """Synthetic, de-identified yard-style cohorts that must all pass validation.
+
+    IDs are distinct from the seeded demo lots so \"Add to plan\" does not collide.
+    """
+
+    def row(**fields: str) -> dict[str, str]:
+        return {column: fields.get(column, "") for column in COHORT_COLUMNS}
+
+    return [
+        row(
+            cohort_id="SAMPLE-TXA-1",
+            yard_id="TX-A",
+            cohort_name="Sample Panhandle North A",
+            head_count="90",
+            sex="steer",
+            arrival_weight_lb="680",
+            source_count="2",
+            travel_distance_mi="210",
+            weaning_status="known_weaned",
+            vaccination_status="known_vaccinated",
+            ration_transition_status="adapted",
+            bunk_space_in_per_head="12",
+            arrival_quarter="Q3",
+            clinically_ill_head="1",
+        ),
+        row(
+            cohort_id="SAMPLE-TXB-1",
+            yard_id="TX-B",
+            cohort_name="Sample Panhandle South A",
+            head_count="75",
+            sex="heifer",
+            arrival_weight_lb="520",
+            source_count="3",
+            travel_distance_mi="640",
+            weaning_status="known_unweaned",
+            vaccination_status="known_unvaccinated",
+            ration_transition_status="transitioning",
+            bunk_space_in_per_head="9",
+            arrival_quarter="Q4",
+            clinically_ill_head="2",
+        ),
+        row(
+            cohort_id="SAMPLE-KSA-1",
+            yard_id="KS-A",
+            cohort_name="Sample High Plains West A",
+            head_count="110",
+            sex="mixed",
+            arrival_weight_lb="710",
+            source_count="1",
+            travel_distance_mi="",
+            weaning_status="unknown",
+            vaccination_status="",
+            ration_transition_status="adapted",
+            bunk_space_in_per_head="",
+            arrival_quarter="Q2",
+            clinically_ill_head="0",
+        ),
+        row(
+            cohort_id="SAMPLE-KSB-1",
+            yard_id="KS-B",
+            cohort_name="Sample High Plains East A",
+            head_count="95",
+            sex="steer",
+            arrival_weight_lb="790",
+            source_count="1",
+            travel_distance_mi="85",
+            weaning_status="known_weaned",
+            vaccination_status="known_vaccinated",
+            ration_transition_status="adapted",
+            bunk_space_in_per_head="14",
+            arrival_quarter="Q1",
+            clinically_ill_head="0",
+        ),
+    ]
+
+
 def write_demo(directory: Path | None = None) -> None:
     directory = directory or HERE
     directory.mkdir(parents=True, exist_ok=True)
@@ -270,6 +347,7 @@ def write_demo(directory: Path | None = None) -> None:
     _write_csv(directory / "upload_bad_rows.csv", COHORT_COLUMNS, _bad_rows())
     fields, rows = _missing_column_rows()
     _write_csv(directory / "upload_missing_column.csv", tuple(fields), rows)
+    _write_csv(directory / "upload_valid_sample.csv", COHORT_COLUMNS, _valid_sample_rows())
 
 
 def _print_story(directory: Path) -> None:
