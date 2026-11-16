@@ -22,6 +22,8 @@ pip install -r requirements.txt
 pytest                             # expect 44 passed
 ```
 
+Or: `make install && make test` (optional local shortcut; see `Makefile`). CI still uses `pip` + `pytest` directly.
+
 Demo CSVs ship in `data/`. No `.env` or secrets are required.
 
 ## Launch (Streamlit)
