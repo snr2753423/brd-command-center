@@ -1,4 +1,8 @@
-"""ASGI entry for the shortage demo. The Streamlit UI stays in streamlit_app.py."""
+"""ASGI entry for the shortage demo. The Streamlit UI stays in streamlit_app.py.
+
+Run locally: ``uvicorn app:app`` (uvicorn is pinned in requirements.txt).
+Routes: ``/`` HTML storyboard page, ``/summary`` plain text, ``/health``, ``/ready``.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +10,8 @@ from functools import lru_cache
 from html import escape
 
 from starlette.applications import Starlette
-from starlette.responses import HTMLResponse, PlainTextResponse
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, PlainTextResponse, Response
 from starlette.routing import Route
 
 from src.data_loader import load_demo
@@ -101,6 +106,45 @@ def _withheld_line(context: Context) -> str:
     )
 
 
+def _error_page(title: str, detail: str) -> str:
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{_e(title)} — BRD Command Center</title>
+  <style>
+    body {{
+      margin: 0;
+      background: #F3F4F6;
+      color: #1B1E23;
+      font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }}
+    main {{ max-width: 720px; margin: 0 auto; padding: 2rem 1.1rem; }}
+    .banner {{
+      background: #FFFFFF;
+      border: 1px solid #E2E4E8;
+      border-left: 4px solid #B85C38;
+      padding: 0.9rem 1rem;
+    }}
+    a {{ color: #B85C38; }}
+  </style>
+</head>
+<body>
+<main>
+  <h1>BRD Command Center</h1>
+  <div class="banner">
+    <strong>{_e(title)}</strong>
+    <p>{_e(detail)}</p>
+    <p>Try <a href="/health">/health</a> or <a href="/ready">/ready</a>, then reload
+       <a href="/">/</a> or <a href="/summary">/summary</a>.</p>
+  </div>
+</main>
+</body>
+</html>
+"""
+
+
 def render_page() -> str:
     context, seeded, cut, practice, summary = _scenario()
     priority = _cohort(context, PRIORITY_COHORT_ID)
@@ -132,12 +176,17 @@ def render_page() -> str:
         else "Current practice fits these limits."
     )
     shown = "Withheld" if not incomplete_score.confident_call else pct(incomplete_score.planning_morbidity)
+    planning_incomplete = pct(incomplete_score.planning_morbidity)
     totals = (
-        f"<p>Expected cases {_e(num(seeded.totals.expected_cases))} to {_e(num(cut.totals.expected_cases))}. "
-        f"Operating loss {_e(money(seeded.totals.operating_loss))} to {_e(money(cut.totals.operating_loss))}. "
-        f"Antimicrobial exposure {_e(num(seeded.totals.amu))} to {_e(num(cut.totals.amu))} synthetic units.</p>"
+        f"<p>Expected cases {_e(num(seeded.totals.expected_cases))} → {_e(num(cut.totals.expected_cases))}. "
+        f"Deaths {_e(num(seeded.totals.expected_deaths))} → {_e(num(cut.totals.expected_deaths))}. "
+        f"Operating loss {_e(money(seeded.totals.operating_loss))} → {_e(money(cut.totals.operating_loss))}. "
+        f"Antimicrobial exposure {_e(num(seeded.totals.amu))} → {_e(num(cut.totals.amu))} synthetic units.</p>"
         if seeded.feasible and cut.feasible
-        else ""
+        else "<p>Totals unavailable: one of the solves was not feasible.</p>"
+    )
+    band = (
+        f"{_e(pct(priority_score.interval_low))}–{_e(pct(priority_score.interval_high))}"
     )
 
     return f"""<!DOCTYPE html>
@@ -165,7 +214,7 @@ def render_page() -> str:
     }}
     h2 {{ font-size: 1.15rem; margin-top: 1.8rem; }}
     a {{ color: #B85C38; }}
-    .banner, section, pre {{
+    .banner, section, pre, ol.beats {{
       background: #FFFFFF;
       border: 1px solid #E2E4E8;
     }}
@@ -177,6 +226,11 @@ def render_page() -> str:
     .call {{
       border-left: 4px solid #B85C38;
       padding-left: 0.75rem;
+    }}
+    ol.beats {{
+      padding: 0.75rem 0.75rem 0.75rem 2rem;
+      margin: 0.6rem 0 0;
+      line-height: 1.45;
     }}
     table {{
       width: 100%;
@@ -196,12 +250,14 @@ def render_page() -> str:
     }}
     .nav {{ margin: 0.8rem 0 0; }}
     .nav a {{ margin-right: 1rem; }}
+    .meta {{ color: #4B5563; font-size: 0.92rem; }}
   </style>
 </head>
 <body>
 <main>
   <h1>BRD Command Center</h1>
-  <p>Feedlot arrival decisions for four Texas Panhandle and western Kansas yards.</p>
+  <p>Feedlot arrival decisions for four Texas Panhandle and western Kansas yards.
+     Static shortage demo path (same engines as Streamlit).</p>
   <div class="banner">
     <strong>Synthetic data.</strong>
     Yard volumes, cohort rows, and weather-stress flags are synthetic.
@@ -210,12 +266,27 @@ def render_page() -> str:
     Medication actions are not prescriptions.
   </div>
   <p class="nav">
+    <a href="#beats">Demo beats</a>
     <a href="#shortage">Shortage</a>
-    <a href="#staff-cut">Lot 4401 staff cut</a>
+    <a href="#lot-4401">Lot 4401</a>
+    <a href="#staff-cut">Staff cut</a>
     <a href="#withheld">Lot 4388</a>
     <a href="#summary">Decision summary</a>
     <a href="/summary">Plain text</a>
+    <a href="/health">Health</a>
+    <a href="/ready">Ready</a>
   </p>
+
+  <h2 id="beats">Demo path beats</h2>
+  <ol class="beats">
+    <li>Shortage ranked arrivals — Lot 4401 first; Lot 4388 morbidity Withheld.</li>
+    <li>Lot 4401 planning {_e(pct(priority_score.planning_morbidity))} vs the published 15% line
+        (P≥15% {_e(pct(priority_score.p_high_risk))}).</li>
+    <li>TX-A staff cut {_e(f"{txa.staff_hours:.0f}")}→{_e(f"{txa.demo_staff_hours:.0f}")} h moves Lot 4401
+        off enhanced surveillance when the cut binds.</li>
+    <li>Incomplete Lot 4388 refuses a confident call; planning uses worst case {_e(planning_incomplete)}.</li>
+    <li>Export the labeled synthetic decision summary (plain text at <a href="/summary">/summary</a>).</li>
+  </ol>
 
   <h2 id="shortage">Shortage scenario</h2>
   <section>
@@ -235,6 +306,16 @@ def render_page() -> str:
     <p>{_e(practice_note)}</p>
   </section>
 
+  <h2 id="lot-4401">Lot 4401</h2>
+  <section>
+    <p><strong>{_e(priority.cohort_name)}</strong> · {_e(priority.cohort_id)} · {_e(priority.yard_id)}</p>
+    <p class="call">Planning morbidity {_e(pct(priority_score.planning_morbidity))}.
+       P(morbidity at or above 15%): {_e(pct(priority_score.p_high_risk))}.
+       ~90% band {_e(band)}.</p>
+    <p class="meta">Planning figure is not the same as P(above 15%). Drivers raise the estimate;
+       this remains an assumption-based planning input, not a validated prediction.</p>
+  </section>
+
   <h2 id="staff-cut">Lot 4401 staff cut</h2>
   <section>
     <p>Hard limits: staff hours, pen space, and treatment throughput. Welfare floors stay on.</p>
@@ -248,7 +329,8 @@ def render_page() -> str:
   <section>
     <p><strong>{_e(incomplete.cohort_name)}</strong> · {_e(incomplete.cohort_id)} · {_e(incomplete.yard_id)}</p>
     <p class="call">{_e(_withheld_line(context))}</p>
-    <p>45-day morbidity: {_e(shown)}. P(morbidity at or above 15%): {_e(pct(incomplete_score.p_high_risk))}.</p>
+    <p>45-day morbidity: {_e(shown)}. Planning figure (worst case of the unknown-state range):
+       {_e(planning_incomplete)}. P(morbidity at or above 15%): {_e(pct(incomplete_score.p_high_risk))}.</p>
     <p>Do not treat a known-fields figure as a call against the 15% benchmark when the record is incomplete.</p>
   </section>
 
@@ -261,17 +343,51 @@ def render_page() -> str:
 """
 
 
-def homepage(_request):
-    return HTMLResponse(render_page())
+async def homepage(_request: Request) -> Response:
+    try:
+        return HTMLResponse(render_page())
+    except Exception as exc:  # noqa: BLE001 — demo page must not crash the host
+        return HTMLResponse(
+            _error_page(
+                "Shortage demo unavailable",
+                f"Could not build the shortage page ({type(exc).__name__}). "
+                "Check that data/ CSVs are present and valid.",
+            ),
+            status_code=503,
+        )
 
 
-def summary(_request):
-    return PlainTextResponse(render_summary())
+async def summary(_request: Request) -> Response:
+    try:
+        return PlainTextResponse(render_summary())
+    except Exception as exc:  # noqa: BLE001 — keep /summary usable for hosts
+        return PlainTextResponse(
+            "BRD Command Center — summary unavailable\n"
+            f"Could not build the shortage decision summary ({type(exc).__name__}).\n"
+            "Check /ready and that data/ CSVs are present.\n",
+            status_code=503,
+        )
+
+
+async def health(_request: Request) -> Response:
+    """Liveness: process is up. Does not load demo data."""
+    return PlainTextResponse("ok\n")
+
+
+async def ready(_request: Request) -> Response:
+    """Readiness: shortage scenario builds successfully."""
+    try:
+        _scenario()
+    except Exception as exc:  # noqa: BLE001 — readiness must report failure cleanly
+        return PlainTextResponse(f"not ready: {type(exc).__name__}\n", status_code=503)
+    return PlainTextResponse("ready\n")
 
 
 app = Starlette(
     routes=[
         Route("/", homepage),
         Route("/summary", summary),
+        Route("/health", health),
+        Route("/ready", ready),
     ]
 )

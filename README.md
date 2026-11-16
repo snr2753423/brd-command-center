@@ -53,7 +53,7 @@ Optional shareable demo: see [hosting notes](docs/hosting.md) (local Streamlit d
 
 ```text
 streamlit_app.py        Dashboard: Overview, Cohort, Compare, Optimizer, Export
-app.py                  ASGI entry (uvicorn app:app) serving the demo path
+app.py                  ASGI entry (uvicorn app:app): /, /summary, /health, /ready
 src/
   risk_model.py         45-day morbidity score, drivers, unknown-field planning
   calibration.py        Fit to Rojas 2022 mean, high-risk share, and AUC

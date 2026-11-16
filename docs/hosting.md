@@ -15,13 +15,16 @@ Optional static shortage page (same engines, no Streamlit widgets):
 
 ```bash
 pip install -r requirements.txt
-# uvicorn is not pinned; install it only if you want this entry
-pip install "uvicorn[standard]"
 uvicorn app:app --reload
 ```
 
 - Streamlit UI: `streamlit_app.py`
-- ASGI summary page: `app.py` (`/` HTML, `/summary` plain text)
+- ASGI shortage demo: `app.py` via `uvicorn app:app`
+  - `/` HTML storyboard beats (ranked shortage, Lot 4401, staff cut, Lot 4388, summary)
+  - `/summary` plain-text decision summary
+  - `/health` liveness (`ok`)
+  - `/ready` readiness (builds the shortage scenario)
+- `uvicorn[standard]` and `httpx2` are pinned in `requirements.txt` (ASGI serve + Starlette TestClient).
 - Theme: `.streamlit/config.toml` (committed). Keep secrets out of git; `.streamlit/secrets.toml` is ignored and unused by this demo.
 
 ## Streamlit Community Cloud (optional)
@@ -31,7 +34,7 @@ If you want a shareable UI link without paid infra:
 1. Push this repository to GitHub (already public for the submission).
 2. In [Streamlit Community Cloud](https://share.streamlit.io/), deploy from the repo.
 3. **Main file path:** `streamlit_app.py`
-4. Python version: 3.11 or 3.12. Dependencies come from `requirements.txt` (Streamlit, pandas, NumPy, PuLP, Plotly, Starlette, pytest).
+4. Python version: 3.11 or 3.12. Dependencies come from `requirements.txt` (Streamlit, pandas, NumPy, PuLP, Plotly, Starlette, uvicorn, httpx2, pytest).
 
 No secrets, API keys, or environment variables are required for the demo. Leave Cloud secrets empty. CSV upload (if used) stays in the session; nothing is written to a database.
 
