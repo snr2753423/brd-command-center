@@ -374,7 +374,9 @@ def page_overview(context: Context, result, practice) -> None:
     _section("Upload cohorts")
     _tag(
         "Rows are checked first. Accepted rows can be added to the plan or replace the seeded cohorts; "
-        "the optimizer then re-solves with them against the same yard limits."
+        "the optimizer then re-solves with them against the same yard limits. "
+        "Dry-run fixtures: data/upload_valid_sample.csv (accept), "
+        "data/upload_bad_rows.csv and data/upload_missing_column.csv (reject demos)."
     )
     active = st.session_state.uploaded_cohorts
     if active:
