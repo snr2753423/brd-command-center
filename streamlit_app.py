@@ -10,7 +10,17 @@ import streamlit as st
 
 from src.assumptions import UNKNOWN_PLANNING_LABEL, Assumptions, case_fatality
 from src.calibration import ROJAS, committed_fit, summary_rows
-from src.charts import burden_chart, calibration_chart, compare_chart, index_chart, totals_caption
+from src.charts import (
+    burden_chart,
+    calibration_chart,
+    compare_chart,
+    compare_delta_chart,
+    drivers_chart,
+    index_chart,
+    totals_caption,
+    uncertainty_chart,
+    yard_limits_chart,
+)
 from src.data_loader import load_demo
 from src.economics import compare_to_practice
 from src.format import field_labels, money, num, pct
@@ -32,6 +42,7 @@ from src.validation import validate_cohort_frame
 
 PAGES = ["Overview", "Cohort", "Compare", "Optimizer", "Export"]
 FONT = '"Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif'
+PLOTLY_CONFIG = {"displayModeBar": False, "responsive": True}
 
 
 def _go(page: str, cohort_id: str | None = None) -> None:
@@ -109,27 +120,104 @@ def _inject_css() -> None:
         html, body, [class*="css"] {{
           font-family: {FONT};
         }}
+        .stApp {{
+          background:
+            radial-gradient(1200px 480px at 8% -10%, rgba(184, 92, 56, 0.08), transparent 55%),
+            radial-gradient(900px 420px at 100% 0%, rgba(47, 111, 106, 0.07), transparent 50%),
+            #F3F4F6;
+        }}
         .block-container {{
-          max-width: 1180px;
-          padding-top: 1.1rem;
+          max-width: 1220px;
+          padding-top: 1.25rem;
+          padding-bottom: 2.5rem;
         }}
         h1 {{
           font-weight: 650;
           letter-spacing: -0.03em;
-          font-size: 1.85rem;
+          font-size: 1.95rem;
+          color: #1B1E23;
+          margin-bottom: 0.15rem;
+        }}
+        h2, h3 {{
+          letter-spacing: -0.02em;
+          color: #1B1E23;
+        }}
+        div[data-testid="stSidebar"] {{
+          background: #FAFBFC;
+          border-right: 1px solid #E2E4E8;
+        }}
+        div[data-testid="stSidebar"] .stRadio label {{
+          font-size: 0.95rem;
+        }}
+        div[data-testid="stMetric"] {{
+          background: #FFFFFF;
+          border: 1px solid #E2E4E8;
+          border-top: 3px solid #B85C38;
+          padding: 0.65rem 0.85rem 0.55rem 0.85rem;
+        }}
+        div[data-testid="stMetricLabel"] {{
+          color: #5C6570;
         }}
         .banner {{
           background: #FFFFFF;
           border: 1px solid #E2E4E8;
           border-left: 4px solid #B85C38;
-          padding: 0.75rem 0.95rem;
-          margin: 0.2rem 0 0.9rem 0;
+          padding: 0.85rem 1rem;
+          margin: 0.35rem 0 1.05rem 0;
           color: #1B1E23;
+          box-shadow: 0 1px 0 rgba(27, 30, 35, 0.03);
+        }}
+        .section-head {{
+          display: flex;
+          align-items: baseline;
+          gap: 0.75rem;
+          margin: 1.15rem 0 0.35rem 0;
+          padding-bottom: 0.35rem;
+          border-bottom: 1px solid #E2E4E8;
+        }}
+        .section-head h3 {{
+          margin: 0;
+          font-size: 1.15rem;
+          font-weight: 650;
+          letter-spacing: -0.02em;
+          color: #1B1E23;
+        }}
+        .section-head .rule {{
+          flex: 1;
+          height: 2px;
+          background: linear-gradient(90deg, #B85C38 0%, rgba(184, 92, 56, 0) 70%);
+          border: 0;
+          margin: 0;
+        }}
+        .chart-frame {{
+          background: #FFFFFF;
+          border: 1px solid #E2E4E8;
+          padding: 0.35rem 0.55rem 0.15rem 0.55rem;
+          margin: 0.45rem 0 0.85rem 0;
+        }}
+        .page-kicker {{
+          color: #5C6570;
+          font-size: 0.92rem;
+          margin-top: -0.2rem;
+          margin-bottom: 0.35rem;
         }}
         </style>
         """,
         unsafe_allow_html=True,
     )
+
+
+def _section(title: str) -> None:
+    st.markdown(
+        f'<div class="section-head"><h3>{title}</h3><div class="rule"></div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _plot(fig, alt: str) -> None:
+    st.markdown('<div class="chart-frame">', unsafe_allow_html=True)
+    st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG, alt=alt)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _banner() -> None:
@@ -185,17 +273,15 @@ def _calibration_panel(context: Context) -> None:
         )
         fit = _calibration()
         st.dataframe(pd.DataFrame(summary_rows(fit)), hide_index=True, width="stretch")
-        st.plotly_chart(
+        _plot(
             calibration_chart(fit, context),
-            width="stretch",
-            config={"displayModeBar": False},
-            alt="Histogram of synthetic-population 45-day morbidity with the demo cohorts and the 15% line marked.",
+            "Histogram of synthetic-population 45-day morbidity with the demo cohorts and the 15% line marked.",
         )
 
 
 def page_overview(context: Context, result, practice) -> None:
     # Ranked arrivals first so the 3-minute path hits Lot 4401 without scrolling past yard cards.
-    st.subheader("Ranked arrivals")
+    _section("Ranked arrivals")
     _tag(
         "Ranked by standard-care expected cases. "
         "Morbidity is an assumption-based 45-day estimate. Cohorts with unknown fields are planned on "
@@ -226,11 +312,9 @@ def page_overview(context: Context, result, practice) -> None:
             }
         )
     st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
-    st.plotly_chart(
+    _plot(
         burden_chart(context),
-        width="stretch",
-        config={"displayModeBar": False},
-        alt="Bar chart of standard-care expected cases by cohort. Lot 4401 is highlighted.",
+        "Bar chart of standard-care expected cases by cohort. Lot 4401 is highlighted.",
     )
 
     top_id = context.ranked_ids[0]
@@ -261,7 +345,7 @@ def page_overview(context: Context, result, practice) -> None:
     elif result.feasible:
         st.success("Current practice fits these limits, and a feasible allocation is ready on the Optimizer screen.")
 
-    st.subheader("Four yards")
+    _section("Four yards")
     _tag("Capacities are synthetic. A meter at cap is a hard limit, not a target to exceed.")
     columns = st.columns(4)
     for column, yard in zip(columns, context.yards.values()):
@@ -279,10 +363,15 @@ def page_overview(context: Context, result, practice) -> None:
                     st.write(f"Treatment {_meter(use.treatment, use.treatment_capacity, 'slots')}")
                 else:
                     st.caption("No feasible use to show.")
+    if result.feasible and result.by_yard:
+        _plot(
+            yard_limits_chart(result.by_yard),
+            "Grouped bar chart of staff, pen, and treatment utilization by yard under the recommended plan.",
+        )
 
     _calibration_panel(context)
 
-    st.subheader("Upload cohorts")
+    _section("Upload cohorts")
     _tag(
         "Rows are checked first. Accepted rows can be added to the plan or replace the seeded cohorts; "
         "the optimizer then re-solves with them against the same yard limits."
@@ -380,7 +469,7 @@ def page_cohort(context: Context) -> None:
     cohort = _cohort(context, cohort_id)
     scored = context.scored[cohort_id]
     yard = context.yards[cohort.yard_id]
-    st.markdown(f"**{cohort.cohort_name}** · {yard.yard_name}")
+    _section(f"{cohort.cohort_name} · {yard.yard_name}")
     _tag(f"{yard.region}. Weather-stress flag: {'yes' if yard.weather_stress_flag else 'no'} · synthetic.")
 
     if not scored.confident_call:
@@ -401,6 +490,7 @@ def page_cohort(context: Context) -> None:
             "This is still an assumption-based estimate, not a validated prediction."
         )
 
+    _section("Domain snapshot")
     grouped = domain_summary(scored)
     columns = st.columns(4)
     titles = (
@@ -421,6 +511,7 @@ def page_cohort(context: Context) -> None:
         "That count is a welfare floor. The plan cannot leave them untreated."
     )
 
+    _section("Morbidity and uncertainty")
     left, right = st.columns(2)
     with left:
         shown = "Withheld" if not scored.confident_call else pct(scored.planning_morbidity)
@@ -453,6 +544,12 @@ def page_cohort(context: Context) -> None:
     elif not scored.confident_call:
         st.caption("Do not treat the planning figure as a call against the 15% benchmark.")
 
+    _plot(
+        uncertainty_chart(scored),
+        "Planning morbidity with the known-fields uncertainty band and the published 15% line.",
+    )
+
+    _section("Drivers")
     st.markdown(f"**Drivers.** {why_line(scored)}")
     driver_rows = []
     for driver in scored.drivers:
@@ -468,6 +565,10 @@ def page_cohort(context: Context) -> None:
             }
         )
     st.dataframe(pd.DataFrame(driver_rows), hide_index=True, width="stretch")
+    _plot(
+        drivers_chart(scored),
+        "Horizontal bar chart of log-odds risk drivers for this cohort.",
+    )
     st.button("Compare with current practice", type="primary", on_click=_go, args=("Compare", cohort_id))
 
 
@@ -476,6 +577,7 @@ def page_compare(context: Context) -> None:
     cohort = _cohort(context, cohort_id)
     scored = context.scored[cohort_id]
     practice = context.practice[cohort_id]
+    _section("Current-practice rule")
     st.markdown(rule_text(context.assumptions))
     st.markdown(
         f"**This cohort:** {action_label(practice)}. "
@@ -490,6 +592,7 @@ def page_compare(context: Context) -> None:
             "Current practice stays on standard care because this lot is not both light and multi-source."
         )
 
+    _section("Action comparison")
     rows = compare_to_practice(cohort, scored, context.assumptions, practice)
     table = []
     for row in rows:
@@ -522,11 +625,13 @@ def page_compare(context: Context) -> None:
         "Deaths are derived from published rates and are not priced, because the $151.18 already "
         "covers the lost value of a sick animal."
     )
-    st.plotly_chart(
+    _plot(
         compare_chart(rows),
-        width="stretch",
-        config={"displayModeBar": False},
-        alt="Expected cases for current practice and the other actions.",
+        "Expected cases for current practice and the other actions.",
+    )
+    _plot(
+        compare_delta_chart(rows),
+        "Delta cases, deaths, operating loss, and antimicrobial exposure versus current practice.",
     )
     if practice == "vet_review":
         st.caption(
@@ -537,6 +642,7 @@ def page_compare(context: Context) -> None:
 
 
 def page_optimizer(context: Context, result, practice, scenario: str, seeded) -> None:
+    _section("Hard limits")
     st.markdown("**Hard limits:** staff hours, pen space, and treatment throughput. Welfare floors stay on.")
     _tag(
         "Every yard's arrival-week limits are live. Move any slider and the plan re-solves. "
@@ -647,6 +753,7 @@ def page_optimizer(context: Context, result, practice, scenario: str, seeded) ->
             )
             _tag("Derived from published rates · follows cases")
 
+        _section("Yard use and allocation")
         yard_rows = []
         for yard_id, use in result.by_yard.items():
             yard_rows.append(
@@ -658,6 +765,10 @@ def page_optimizer(context: Context, result, practice, scenario: str, seeded) ->
                 }
             )
         st.dataframe(pd.DataFrame(yard_rows), hide_index=True, width="stretch")
+        _plot(
+            yard_limits_chart(result.by_yard),
+            "Staff, pen, and treatment utilization by yard under the recommended plan.",
+        )
         allocation = []
         for cohort_id in context.ranked_ids:
             metric = result.by_cohort[cohort_id]
@@ -676,11 +787,10 @@ def page_optimizer(context: Context, result, practice, scenario: str, seeded) ->
                 }
             )
         st.dataframe(pd.DataFrame(allocation), hide_index=True, width="stretch")
-        st.plotly_chart(
+        _section("Before / after vs current practice")
+        _plot(
             index_chart(result, practice),
-            width="stretch",
-            config={"displayModeBar": False},
-            alt="Recommended cases, loss, and antimicrobial exposure indexed to current practice.",
+            "Recommended cases, loss, antimicrobial exposure, and deaths indexed to current practice.",
         )
         _tag(totals_caption(result, practice))
 
@@ -727,6 +837,7 @@ def page_optimizer(context: Context, result, practice, scenario: str, seeded) ->
 
 
 def page_export(context: Context, result, practice, scenario: str, overrides) -> None:
+    _section("Decision summary")
     if overrides:
         parts = []
         for yard_id, fields in overrides.items():
@@ -843,7 +954,10 @@ def main() -> None:
     st.sidebar.caption("Synthetic demo. No login. No live weather.")
 
     st.title("BRD Command Center")
-    st.caption("Feedlot arrival decisions for four Texas Panhandle and western Kansas yards.")
+    st.markdown(
+        '<p class="page-kicker">Feedlot arrival decisions for four Texas Panhandle and western Kansas yards.</p>',
+        unsafe_allow_html=True,
+    )
     _banner()
 
     page = st.session_state.page
