@@ -8,6 +8,7 @@ A decision aid for feedlot managers handling bovine respiratory disease (BRD) in
 - **Tech stack:** Python 3.11+, Streamlit, pandas, NumPy, PuLP (CBC solver), Plotly, pytest
 - **Data:** synthetic cohorts and yards, calibrated to Rojas et al. 2022 (1,733 feedlot cohorts). No paid APIs, accounts, or database.
 - **Submission:** this repository, with the [technical brief](docs/technical_brief.pdf), the [demonstration case](docs/demonstration_case.md), and the [AI disclosure](docs/ai_disclosure.md)
+- **Contributing:** see [CONTRIBUTING.md](CONTRIBUTING.md) for setup, tests, Streamlit vs ASGI, PR/CI expectations, and synthetic-data notes
 
 ## Install
 
