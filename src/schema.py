@@ -73,6 +73,17 @@ QUARTER_VALUES = ("Q1", "Q2", "Q3", "Q4", "unknown")
 
 CRITICAL_FIELDS = ("travel_distance_mi", "weaning_status", "vaccination_status")
 
+# Judge-facing labels for CSV / schema field keys (refusal copy, export).
+FIELD_LABEL: dict[str, str] = {
+    "travel_distance_mi": "travel distance",
+    "weaning_status": "weaning",
+    "vaccination_status": "vaccination",
+    "ration_transition_status": "ration transition",
+    "bunk_space_in_per_head": "bunk space",
+    "sex": "sex",
+    "arrival_quarter": "arrival quarter",
+}
+
 
 @dataclass(frozen=True)
 class Cohort:

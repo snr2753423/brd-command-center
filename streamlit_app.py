@@ -13,7 +13,7 @@ from src.calibration import ROJAS, committed_fit, summary_rows
 from src.charts import burden_chart, calibration_chart, compare_chart, index_chart, totals_caption
 from src.data_loader import load_demo
 from src.economics import compare_to_practice
-from src.format import money, num, pct
+from src.format import field_labels, money, num, pct
 from src.optimizer import CAPACITY_FIELDS, evaluate_assignment, solve
 from src.pipeline import Context, build_context
 from src.practice import action_label, rule_text
@@ -194,25 +194,7 @@ def _calibration_panel(context: Context) -> None:
 
 
 def page_overview(context: Context, result, practice) -> None:
-    st.subheader("Four yards")
-    _tag("Capacities are synthetic. A meter at cap is a hard limit, not a target to exceed.")
-    columns = st.columns(4)
-    for column, yard in zip(columns, context.yards.values()):
-        with column:
-            with st.container(border=True):
-                st.markdown(f"**{yard.yard_name}**")
-                st.caption(f"{yard.region} · {yard.yard_id}")
-                flag = "yes" if yard.weather_stress_flag else "no"
-                st.caption(f"Weather-stress flag: {flag} · synthetic, not a live feed")
-                st.caption(f"Tightest story point: {yard.bottleneck}")
-                if result.feasible and yard.yard_id in result.by_yard:
-                    use = result.by_yard[yard.yard_id]
-                    st.write(f"Staff {_meter(use.staff, use.staff_capacity, 'h')}")
-                    st.write(f"Pen {_meter(use.pen, use.pen_capacity, 'sq ft')}")
-                    st.write(f"Treatment {_meter(use.treatment, use.treatment_capacity, 'slots')}")
-                else:
-                    st.caption("No feasible use to show.")
-
+    # Ranked arrivals first so the 3-minute path hits Lot 4401 without scrolling past yard cards.
     st.subheader("Ranked arrivals")
     _tag(
         "Ranked by standard-care expected cases. "
@@ -278,6 +260,25 @@ def page_overview(context: Context, result, practice) -> None:
         st.warning("Current practice is not feasible under these limits. " + " ".join(practice.violations))
     elif result.feasible:
         st.success("Current practice fits these limits, and a feasible allocation is ready on the Optimizer screen.")
+
+    st.subheader("Four yards")
+    _tag("Capacities are synthetic. A meter at cap is a hard limit, not a target to exceed.")
+    columns = st.columns(4)
+    for column, yard in zip(columns, context.yards.values()):
+        with column:
+            with st.container(border=True):
+                st.markdown(f"**{yard.yard_name}**")
+                st.caption(f"{yard.region} · {yard.yard_id}")
+                flag = "yes" if yard.weather_stress_flag else "no"
+                st.caption(f"Weather-stress flag: {flag} · synthetic, not a live feed")
+                st.caption(f"Bottleneck: {yard.bottleneck}")
+                if result.feasible and yard.yard_id in result.by_yard:
+                    use = result.by_yard[yard.yard_id]
+                    st.write(f"Staff {_meter(use.staff, use.staff_capacity, 'h')}")
+                    st.write(f"Pen {_meter(use.pen, use.pen_capacity, 'sq ft')}")
+                    st.write(f"Treatment {_meter(use.treatment, use.treatment_capacity, 'slots')}")
+                else:
+                    st.caption("No feasible use to show.")
 
     _calibration_panel(context)
 
@@ -383,9 +384,8 @@ def page_cohort(context: Context) -> None:
     _tag(f"{yard.region}. Weather-stress flag: {'yes' if yard.weather_stress_flag else 'no'} · synthetic.")
 
     if not scored.confident_call:
-        missing = ", ".join(scored.confidence.critical_missing)
         st.error(
-            f"No confident recommendation. Missing {missing}. "
+            f"No confident recommendation. Missing {field_labels(scored.confidence.critical_missing)}. "
             "Those fields were not filled with a typical value. "
             f"The plan uses {UNKNOWN_PLANNING_LABEL[scored.planning_basis].lower()}: "
             f"{pct(scored.planning_morbidity)}. A veterinarian or manager should confirm the history."
@@ -825,12 +825,12 @@ def main() -> None:
     st.sidebar.radio("Screen", PAGES, key="page")
     st.sidebar.radio("Scenario", ["Shortage", "Normal mix"], key="scenario_label")
     st.sidebar.radio(
-        "Plan cohorts with unknown fields at",
+        "Unknown fields planned at",
         list(UNKNOWN_PLANNING_LABEL),
         format_func=lambda key: UNKNOWN_PLANNING_LABEL[key],
         key="unknown_planning",
         help="Leaving an unknown field out of the score equals giving it the reference value. "
-        "Worst case is the cautious default.",
+        "Worst case is the cautious default. Leave this on worst case for the 3-minute path.",
     )
     st.sidebar.caption(f"Objective: {OBJECTIVE_LABEL[st.session_state.objective]}")
     st.sidebar.caption(f"Morbidity cost assumption: ${float(st.session_state.morbidity_cost):.2f}")
